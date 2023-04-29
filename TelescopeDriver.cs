@@ -36,6 +36,7 @@
 using ASCOM;
 using ASCOM.Astrometry;
 using ASCOM.Astrometry.AstroUtils;
+using ASCOM.Astrometry.Transform;
 using ASCOM.Astrometry.NOVAS;
 using ASCOM.DeviceInterface;
 using ASCOM.Utilities;
@@ -116,6 +117,11 @@ namespace ASCOM.TTS160
         private static readonly Mutex serMutex = new Mutex();
 
         /// <summary>
+        /// Variable to provide coordinate Transforms
+        /// </summary>
+        private Transform T;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TTS160"/> class.
         /// Must be public for COM registration.
         /// </summary>
@@ -129,6 +135,7 @@ namespace ASCOM.TTS160
             connectedState = false; // Initialise connected to false
             utilities = new Util(); //Initialise util object
             astroUtilities = new AstroUtils(); // Initialise astro-utilities object
+            T = new Transform();
             //TODO: Implement your additional construction here
 
             tl.LogMessage("Telescope", "Completed initialization");
@@ -759,8 +766,8 @@ namespace ASCOM.TTS160
         {
             get
             {
-                tl.LogMessage("CanSlewAltAz", "Get - " + false.ToString());
-                return false;
+                tl.LogMessage("CanSlewAltAz", "Get - " + true.ToString());
+                return true;
             }
         }
 
@@ -1479,8 +1486,25 @@ namespace ASCOM.TTS160
         /// </summary>
         public void SlewToAltAz(double Azimuth, double Altitude)
         {
-            tl.LogMessage("SlewToAltAz", "Not implemented");
-            throw new MethodNotImplementedException("SlewToAltAz");
+            try
+            {
+                CheckConnected("SlewToAltAz");
+
+                T.SiteLatitude = SiteLatitude;
+                T.SiteLongitude = SiteLongitude;
+                T.Refraction = false;
+                T.SetAzimuthElevation(Azimuth, Altitude);
+                SlewToCoordinates(T.RATopocentric, T.DECTopocentric);
+
+            }
+            catch (Exception ex)
+            {
+                tl.LogMessage("SlewToCoordinates", $"Error: {ex.Message}");
+                throw;
+            }
+            
+            //tl.LogMessage("SlewToAltAz", "Not implemented");
+            //throw new MethodNotImplementedException("SlewToAltAz");
         }
 
         /// <summary>
@@ -1492,6 +1516,7 @@ namespace ASCOM.TTS160
         /// <param name="Altitude">Altitude to which to move to</param>
         public void SlewToAltAzAsync(double Azimuth, double Altitude)
         {
+                     
             tl.LogMessage("SlewToAltAzAsync", "Not implemented");
             throw new MethodNotImplementedException("SlewToAltAzAsync");
         }
@@ -1509,7 +1534,7 @@ namespace ASCOM.TTS160
                 CheckConnected("SlewToCoordinates");
                 TargetDeclination = Declination;
                 TargetRightAscension = RightAscension;
-                CommandBlind(":MS#", true);
+                SlewToTarget();
                 //if (result == "1") { throw new Exception("Unable to slew:" + result); }
             }
             catch (Exception ex)
