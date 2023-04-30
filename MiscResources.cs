@@ -76,11 +76,12 @@
             internal set => _isTargetSet = value;
         }
 
+        private static EquatorialCoordinates _Target = new EquatorialCoordinates();
         public static EquatorialCoordinates Target
         {
-            get => Target;
-            internal set => Target = value;
-            
+            get => _Target;
+            internal set => _Target = value;
+
         }
 
     }

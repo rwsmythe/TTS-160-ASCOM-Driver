@@ -252,9 +252,15 @@ namespace ASCOM.TTS160
                 // TODO The optional CommandBool method should either be implemented OR throw a MethodNotImplementedException
                 // If implemented, CommandBool must send the supplied command to the mount, wait for a response and parse this to return a True or False value
 
-                string retString = CommandString(command, raw); // Send the command and wait for the response
+                //string retString = CommandString(command, raw); // Send the command and wait for the response
 
-                bool retBool = char.GetNumericValue(retString[0]) == 1; // Parse the returned string and create a boolean True / False value
+                serMutex.WaitOne();
+                serialPort.ClearBuffers();
+                serialPort.Transmit(command);
+                var result = serialPort.ReceiveCounted(1);  //assumes that all return strings are # terminated...is this true?
+                serMutex.ReleaseMutex();
+
+                bool retBool = char.GetNumericValue(result[0]) == 1; // Parse the returned string and create a boolean True / False value
                                                                         //Does not take into account if retString[0] is not 1 or 0...            
                 return retBool; // Return the boolean value to the client
             }
@@ -324,9 +330,9 @@ namespace ASCOM.TTS160
             utilities = null;
             astroUtilities.Dispose();
             astroUtilities = null;
-            serMutex.Dispose();
-            serialPort.Dispose();
-            serialPort = null;
+            //serMutex.Dispose();
+            //serialPort.Dispose();
+            //serialPort = null;
 
         }
 
@@ -1568,19 +1574,20 @@ namespace ASCOM.TTS160
             {
                 if (!MiscResources.IsTargetSet) { throw new Exception("Target Not Set"); }
                 CheckConnected("SlewToTarget");
-                CommandBlind(":MS#", true);
+                bool result = CommandBool(":MS#", true);
+                if (result) { throw new Exception("Unable to slew:" + result); }  //Need to review other implementation
+
                 Slewing = true;
                 MiscResources.IsSlewingToTarget = true;
-                //if (result == "1") { throw new Exception("Unable to slew:" + result); }  Need to review other implementation
-
+                
                 //Create loop to monitor slewing and return when done
                 double resid = 1000; //some number greater than .0001 (~0.5/3600)
                 double threshold = 0.5 / 3600; //0.5 second accuracy
                 int inc = 3; //3 readings <.0001 to determine at target
-                int interval = 100; //100 msec between readings
+                int interval = 50; //100 msec between readings
                 var CoordOld = GetTelescopeRaAndDec();  //Get initial readings
-                int timeout = 2 * 60 * 1000; //two minute timeout for task
-                using (CancellationTokenSource cts = new CancellationTokenSource(timeout)) //Use task and cancellation token to prevent infinite loop
+                int timeout = 1 * 60 * 1000; //two minute timeout for task
+                /*using (CancellationTokenSource cts = new CancellationTokenSource(timeout)) //Use task and cancellation token to prevent infinite loop
                 {
                     CancellationToken ct = cts.Token;
                     try
@@ -1608,6 +1615,8 @@ namespace ASCOM.TTS160
                                             inc--;
                                             break;
                                         case 0:
+                                            Slewing = false;
+                                            MiscResources.IsSlewingToTarget = false;
                                             return;
                                     }
                                 }
@@ -1638,7 +1647,51 @@ namespace ASCOM.TTS160
                         Slewing = false;
                         MiscResources.IsSlewingToTarget = false;
                         throw new Exception("Slew Timeout Reached, Motion Cancelled");
+                    }*/
+                while (inc > 0)
+                {
+                    utilities.WaitForMilliseconds(interval); //let the mount move a bit
+                    var CoordNew = GetTelescopeRaAndDec(); //get telescope coords
+                    double RADelt = CoordNew.RightAscension - CoordOld.RightAscension;
+                    double DecDelt = CoordNew.Declination - CoordOld.Declination;
+                    resid = Math.Sqrt(Math.Pow(RADelt, 2) + Math.Pow(DecDelt, 2));
+                    if (resid <= threshold)
+                    {
+                        switch (inc)  //We are good, decrement the count
+                        {
+                            case 3:
+                                inc--;
+                                break;
+                            case 2:
+                                inc--;
+                                break;
+                            case 1:
+                                inc--;
+                                break;
+                            case 0:
+                                Slewing = false;
+                                MiscResources.IsSlewingToTarget = false;
+                                return;
+                        }
                     }
+                    else
+                    {
+                        switch (inc)  //We are bad, increment the count up to 3
+                        {
+                            case 2:
+                                inc++;
+                                break;
+                            case 1:
+                                inc++;
+                                break;
+                            case 0:
+                                inc++;
+                                break;
+                        }
+                    }
+
+                    CoordOld = CoordNew;
+
                 }
 
             }
@@ -1761,8 +1814,10 @@ namespace ASCOM.TTS160
                     tl.LogMessage("TargetDeclination Set", "Setting Target Dec");
                     CheckConnected("Set Target Dec");
                     var targDec = utilities.DegreesToDMS(value, "*", ":");
-                    CommandBlind($":Sd+{targDec}#", true);
-                    //if (result == "0") { throw new Exception("Invalid Target Declination:" + targDec); }
+                    bool result = CommandBool($":Sd+{targDec}#", true);
+                    
+                    if (!result ) { throw new Exception("Invalid Target Declination:" + targDec); }
+
                     tl.LogMessage("TargetDeclination Set", "Target Dec Set to:" + targDec);
                     MiscResources.Target.Declination = value;
                     if (!MiscResources.IsTargetDecSet)
@@ -1816,8 +1871,10 @@ namespace ASCOM.TTS160
                 {
                     CheckConnected("Set Target RA");
                     string targRA = utilities.HoursToHMS(value, ":", ":");
-                    CommandBlind(":Sr" + targRA + "#", true);
-                    //if (result == "0") { throw new Exception("Invalid Target Right Ascension:" + targRA); }
+                    bool result = CommandBool(":Sr" + targRA + "#", true);
+
+                    if (!result) { throw new Exception("Invalid Target Right Ascension:" + targRA); }
+
                     tl.LogMessage("TargetRightAscension Set", "Target RA Set to:" + targRA);
                     MiscResources.Target.RightAscension = value;
                     if (!MiscResources.IsTargetRASet)
