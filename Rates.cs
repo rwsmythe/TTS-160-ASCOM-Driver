@@ -100,11 +100,11 @@ namespace ASCOM.TTS160
                 case TelescopeAxes.axisPrimary:                   
                     // TODO Initialize this array with any Primary axis rates that your driver may provide
                     // Example: m_Rates = new Rate[] { new Rate(10.5, 30.2), new Rate(54.0, 43.6) }
-                    this.rates = new Rate[] { new Rate(1, 1) };
+                    this.rates = new Rate[] { new Rate(0, 1) };
                     break;
                 case TelescopeAxes.axisSecondary:
                     // TODO Initialize this array with any Secondary axis rates that your driver may provide
-                    this.rates = new Rate[] { new Rate(1, 1) };
+                    this.rates = new Rate[] { new Rate(0, 1) };
                     break;
                 case TelescopeAxes.axisTertiary:
                     // TODO Initialize this array with any Tertiary axis rates that your driver may provide

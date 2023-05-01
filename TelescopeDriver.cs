@@ -478,6 +478,8 @@ namespace ASCOM.TTS160
                 tl.LogMessage("AbortSlew", "Aborting Slew, CommandBlind :Q#");
                 CheckConnected("AbortSlew");
                 CommandBlind(":Q#", true);
+                Slewing = false;
+                MiscResources.IsSlewingToTarget = false;
 
                 tl.LogMessage("AbortSlew", "Completed");
             }
@@ -1445,7 +1447,7 @@ namespace ASCOM.TTS160
                     tl.LogMessage("SiteLongitude Get", "Getting Site Longitude");
                     CheckConnected("SiteLongitude Get");
 
-                    var result = CommandString(":Gt#", true);
+                    var result = CommandString(":Gg#", true);
                     //:Gt# Get Site Longitude
                     //Returns: sDDD*MM#
 
@@ -1574,17 +1576,22 @@ namespace ASCOM.TTS160
             {
                 if (!MiscResources.IsTargetSet) { throw new Exception("Target Not Set"); }
                 CheckConnected("SlewToTarget");
+                double TargRA = MiscResources.Target.RightAscension;
+                double TargDec = MiscResources.Target.Declination;
                 bool result = CommandBool(":MS#", true);
                 if (result) { throw new Exception("Unable to slew:" + result); }  //Need to review other implementation
 
                 Slewing = true;
                 MiscResources.IsSlewingToTarget = true;
-                
+
                 //Create loop to monitor slewing and return when done
+                utilities.WaitForMilliseconds(500); //give motors time to start
                 double resid = 1000; //some number greater than .0001 (~0.5/3600)
+                double targresid = 1000;
                 double threshold = 0.5 / 3600; //0.5 second accuracy
+                double targthreshold = 10; //start checking w/in 10 seconds of target
                 int inc = 3; //3 readings <.0001 to determine at target
-                int interval = 50; //100 msec between readings
+                int interval = 100; //100 msec between readings
                 var CoordOld = GetTelescopeRaAndDec();  //Get initial readings
                 int timeout = 1 * 60 * 1000; //two minute timeout for task
                 /*using (CancellationTokenSource cts = new CancellationTokenSource(timeout)) //Use task and cancellation token to prevent infinite loop
@@ -1648,30 +1655,28 @@ namespace ASCOM.TTS160
                         MiscResources.IsSlewingToTarget = false;
                         throw new Exception("Slew Timeout Reached, Motion Cancelled");
                     }*/
-                while (inc > 0)
+                while (inc >= 0)
                 {
                     utilities.WaitForMilliseconds(interval); //let the mount move a bit
                     var CoordNew = GetTelescopeRaAndDec(); //get telescope coords
                     double RADelt = CoordNew.RightAscension - CoordOld.RightAscension;
                     double DecDelt = CoordNew.Declination - CoordOld.Declination;
+                    double RADeltTarg = CoordNew.RightAscension - TargRA;
+                    double DecDeltTarg = CoordNew.Declination - TargDec;
                     resid = Math.Sqrt(Math.Pow(RADelt, 2) + Math.Pow(DecDelt, 2));
-                    if (resid <= threshold)
+                    targresid = Math.Sqrt(Math.Pow(RADeltTarg, 2) + Math.Pow(DecDeltTarg, 2));
+                    if ((resid <= threshold) & (targresid <= targthreshold))
                     {
                         switch (inc)  //We are good, decrement the count
                         {
-                            case 3:
-                                inc--;
-                                break;
-                            case 2:
-                                inc--;
-                                break;
-                            case 1:
-                                inc--;
-                                break;
+           
                             case 0:
                                 Slewing = false;
                                 MiscResources.IsSlewingToTarget = false;
                                 return;
+                            default:
+                                inc--;
+                                break;
                         }
                     }
                     else
@@ -1690,7 +1695,10 @@ namespace ASCOM.TTS160
                         }
                     }
 
-                    CoordOld = CoordNew;
+                    CoordOld.RightAscension = CoordNew.RightAscension;
+                    CoordOld.Declination = CoordNew.Declination;
+                    CoordNew.RightAscension = 0;
+                    CoordNew.Declination = 0;
 
                 }
 
