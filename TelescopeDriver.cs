@@ -54,6 +54,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Drawing.Text;
 using System.Runtime.Serialization.Formatters;
+using System.Diagnostics.Eventing.Reader;
+using System.Windows.Forms;
 
 namespace ASCOM.TTS160
 {
@@ -497,8 +499,29 @@ namespace ASCOM.TTS160
         {
             get
             {
-                tl.LogMessage("AlignmentMode Get", "Not implemented");
-                throw new PropertyNotImplementedException("AlignmentMode", false);
+                try
+                {
+                    CheckConnected("AlignmentMode");
+
+                    String ret = CommandString(":GW#", true);
+                    switch (ret[0])
+                    {
+                        case 'A': return DeviceInterface.AlignmentModes.algAltAz;
+                        case 'P': return DeviceInterface.AlignmentModes.algPolar;
+                        case 'G': return DeviceInterface.AlignmentModes.algGermanPolar;
+                        default: throw new DriverException("Unknown AlignmentMode Reported");
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("AlignmentMode Get", $"Error: {ex.Message}");
+                    throw;
+                }
+
+                
+                //tl.LogMessage("AlignmentMode Get", "Not implemented");
+                //throw new PropertyNotImplementedException("AlignmentMode", false);
             }
         }
 
@@ -570,6 +593,7 @@ namespace ASCOM.TTS160
         {
             get
             {
+                //TTS-160 does not support Homing at this time.  Return False.
                 tl.LogMessage("AtHome", "Get - " + false.ToString());
                 return false;
             }
@@ -582,6 +606,7 @@ namespace ASCOM.TTS160
         {
             get
             {
+                //Park functionality is not implemented by TTS-160 at this time.  Return False.
                 tl.LogMessage("AtPark", "Get - " + false.ToString());
                 return false;
             }
@@ -639,8 +664,20 @@ namespace ASCOM.TTS160
         {
             get
             {
-                tl.LogMessage("CanFindHome", "Get - " + false.ToString());
-                return false;
+                try
+                {
+                    CheckConnected("CanFindHome");
+
+                    //TTS-160 does not have 'Home' functionality implemented at this time, return false
+                    tl.LogMessage("CanFindHome", "Get - " + false.ToString());
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("CanFindHome", $"Error: {ex.Message}");
+                    throw;
+                }
+
             }
         }
 
@@ -666,8 +703,20 @@ namespace ASCOM.TTS160
         {
             get
             {
-                tl.LogMessage("CanPark", "Get - " + false.ToString());
-                return false;
+                try
+                {
+                    CheckConnected("CanPark");
+                    
+                    //TTS-160 does not yet have CanPark implemented, return false
+                    tl.LogMessage("CanPark", "Get - " + false.ToString());
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("CanFindHome", $"Error: {ex.Message}");
+                    throw;
+                }
+
             }
         }
 
@@ -678,8 +727,21 @@ namespace ASCOM.TTS160
         {
             get
             {
-                tl.LogMessage("CanPulseGuide", "Get - " + true.ToString());
-                return true;
+                try
+                {
+                    CheckConnected("CanPulseGuide");
+                    
+                    //Pulse guiding is implemented => true
+                    tl.LogMessage("CanPulseGuide", "Get - " + true.ToString());
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("CanPulseGuide", $"Error: {ex.Message}");
+                    throw;
+                }
+                
+
             }
         }
 
@@ -690,8 +752,19 @@ namespace ASCOM.TTS160
         {
             get
             {
-                tl.LogMessage("CanSetDeclinationRate", "Get - " + false.ToString());
-                return false;
+                try
+                {
+                    CheckConnected("CanSetDeclinationRate");
+                    
+                    //SetDeclinationRate is not implemented in TTS-160, return false
+                    tl.LogMessage("CanSetDeclinationRate", "Get - " + false.ToString());
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("CanSetDeclinationRate", $"Error: {ex.Message}");
+                    throw;
+                }
             }
         }
 
@@ -702,8 +775,19 @@ namespace ASCOM.TTS160
         {
             get
             {
-                tl.LogMessage("CanSetGuideRates", "Get - " + false.ToString());
-                return false;
+                try
+                {
+                    CheckConnected("CanSetGuideRates");
+                    
+                    //TTS-160 does not support SetGuideRates, return false
+                    tl.LogMessage("CanSetGuideRates", "Get - " + false.ToString());
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("CanSetGuideRates", $"Error: {ex.Message}");
+                    throw;
+                }
             }
         }
 
