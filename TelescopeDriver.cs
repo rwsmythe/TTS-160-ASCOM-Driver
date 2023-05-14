@@ -1314,18 +1314,22 @@ namespace ASCOM.TTS160
                                 CommandBlind(":Qw#", true);
                                 //:Qw# Halt westward Slews
                                 //Returns: Nothing
+                                MiscResources.MovingPrimary = false;
+                                Slewing = false;
                                 break;
                             case ComparisonResult.Greater:
                                 CommandBlind(":Me#", true);
                                 //:Me# Move Telescope East at current slew rate
                                 //Returns: Nothing
                                 MiscResources.MovingPrimary = true;
+                                Slewing = true;
                                 break;
                             case ComparisonResult.Lower:
                                 CommandBlind(":Mw#", true);
                                 //:Mw# Move Telescope West at current slew rate
                                 //Returns: Nothing
                                 MiscResources.MovingPrimary = true;
+                                Slewing = true;
                                 break;
                         }
 
@@ -1347,18 +1351,21 @@ namespace ASCOM.TTS160
                                 CommandBlind(":Qs#", true);
                                 //:Qs# Halt southward Slews
                                 //Returns: Nothing
+                                MiscResources.MovingSecondary = false;
                                 break;
                             case ComparisonResult.Greater:
                                 CommandBlind(":Mn#", true);
                                 //:Mn# Move Telescope North at current slew rate
                                 //Returns: Nothing
                                 MiscResources.MovingSecondary = true;
+                                Slewing = true;
                                 break;
                             case ComparisonResult.Lower:
                                 CommandBlind(":Ms#", true);
                                 //:Ms# Move Telescope South at current slew rate
                                 //Returns: Nothing
                                 MiscResources.MovingSecondary = true;
+                                Slewing = true;
                                 break;
                         }
 
