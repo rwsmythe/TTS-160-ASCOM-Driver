@@ -958,8 +958,8 @@ namespace ASCOM.TTS160
                 {
                     CheckConnected("CanSlewAltAzAsync");
                     
-                    tl.LogMessage("CanSlewAltAzAsync", "Get - " + true.ToString());
-                    return true;
+                    tl.LogMessage("CanSlewAltAzAsync", "Get - " + false.ToString());
+                    return false;
                 }
                 catch (Exception ex)
                 {
@@ -980,8 +980,8 @@ namespace ASCOM.TTS160
                 {
                     CheckConnected("CanSlewAsync");
                     
-                    tl.LogMessage("CanSlewAsync", "Get - " + true.ToString());
-                    return true;
+                    tl.LogMessage("CanSlewAsync", "Get - " + false.ToString());
+                    return false;
                 }
                 catch (Exception ex)
                 {
@@ -1150,7 +1150,9 @@ namespace ASCOM.TTS160
                 {
                     CheckConnected("EquatorialCoordinateType");
                     
-                    EquatorialCoordinateType equatorialSystem = EquatorialCoordinateType.equTopocentric;
+                    //TTS-160 uses accepts J2000 coordinates
+
+                    EquatorialCoordinateType equatorialSystem = EquatorialCoordinateType.equJ2000;
                     tl.LogMessage("EquatorialCoordinateType", "Get - " + equatorialSystem.ToString());
                     return equatorialSystem;
                 }
@@ -1260,7 +1262,8 @@ namespace ASCOM.TTS160
                 //CheckParked();
 
                 //Rate switching via LX200 commands is not implemented in TTS-160
-                /*
+                //Rate checking required by ASCOM standards
+
                 var absRate = Math.Abs(Rate);
 
                 switch (absRate)
@@ -1269,32 +1272,13 @@ namespace ASCOM.TTS160
                         //do nothing, it's ok this time as we're halting the slew.
                         break;
                     case 1:
-                        SharedResourcesWrapper.SendBlind(Tl, "RG");
-                        //:RG# Set Slew rate to Guiding Rate (slowest)
-                        //Returns: Nothing
-                        break;
-                    case 2:
-                        SharedResourcesWrapper.SendBlind(Tl, "RC");
-                        //:RC# Set Slew rate to Centering rate (2nd slowest)
-                        //Returns: Nothing
-                        break;
-                    case 3:
-                        SharedResourcesWrapper.SendBlind(Tl, "RM");
-                        //:RM# Set Slew rate to Find Rate (2nd Fastest)
-                        //Returns: Nothing
-                        break;
-                    case 4:
-                        SharedResourcesWrapper.SendBlind(Tl, "RS");
-                        //:RS# Set Slew rate to max (fastest)
-                        //Returns: Nothing
+                        //do nothing, rate selection not supported, but this is valid
                         break;
                     default:
-                        throw new InvalidValueException($"Rate {rate} not supported");
+                        //invalid rate exception
+                        throw new InvalidValueException($"Rate {Rate} not supported");
                 }
-                */
 
-                //Assume the rate (any rate) is valid as TTS-160 doesn't care about rate value at this point
-                //TODO implement rate checking
                 switch (Axis)
                 {
                     case TelescopeAxes.axisPrimary:
@@ -1761,9 +1745,15 @@ namespace ASCOM.TTS160
                 if ((Altitude < 0) || (Altitude > 90)) { throw new ASCOM.InvalidValueException($"Invalid Altitude ${Altitude}"); }
 
                 T.SiteLatitude = SiteLatitude;
-                T.SiteLongitude = SiteLongitude;
+                T.SiteLongitude = (-1)*SiteLongitude;
+                T.SiteElevation = 0;
+                T.SiteTemperature = 20;
                 T.Refraction = false;
                 T.SetAzimuthElevation(Azimuth, Altitude);
+                //DateTime utc = UTCDate;
+                double utc = astroUtilities.JulianDateUtc;
+                T.JulianDateUTC = utc;
+
                 double curtargDec = 0;
                 double curtargRA = 0;
                 try
@@ -1782,7 +1772,7 @@ namespace ASCOM.TTS160
                 {
                     curtargRA = 0;
                 }
-                SlewToCoordinates(T.RATopocentric, T.DECTopocentric);
+                SlewToCoordinates(T.RAJ2000, T.DecJ2000);
 
                 TargetDeclination = curtargDec;
                 TargetRightAscension = curtargRA;
@@ -1804,6 +1794,7 @@ namespace ASCOM.TTS160
         /// <param name="Altitude">Altitude to which to move to</param>
         public void SlewToAltAzAsync(double Azimuth, double Altitude)
         {
+            throw new ASCOM.MethodNotImplementedException();
             try
             {
                 CheckConnected("SlewToAltAzAsync");
@@ -1893,6 +1884,7 @@ namespace ASCOM.TTS160
         /// </summary>
         public void SlewToCoordinatesAsync(double RightAscension, double Declination)
         {
+            throw new ASCOM.MethodNotImplementedException();
             tl.LogMessage("SlewToCoordinates", "Setting Coordinates as Target and Slewing");
             try
             {
@@ -1946,7 +1938,7 @@ namespace ASCOM.TTS160
                 //Assume Target is valid due to setting checks
                 
                 bool result = CommandBool(":MS#", true);
-                if (result) { throw new Exception("Unable to slew:" + result); }  //Need to review other implementation
+                if (result) { throw new Exception("Unable to slew:" + result + " Object Below Horizon"); }  //Need to review other implementation
 
                 Slewing = true;
                 MiscResources.IsSlewingToTarget = true;
@@ -2046,6 +2038,7 @@ namespace ASCOM.TTS160
         /// </summary>
         public async void SlewToTargetAsync()
         {
+            throw new ASCOM.MethodNotImplementedException();
             tl.LogMessage("SlewToTarget", "Slewing To Target");
 
             try
@@ -2216,11 +2209,16 @@ namespace ASCOM.TTS160
                 if ((Altitude < 0) || (Altitude > 90)) { throw new ASCOM.InvalidValueException($"Invalid Altitude ${Altitude}"); }
 
                 T.SiteLatitude = SiteLatitude;
-                T.SiteLongitude = SiteLongitude;
+                T.SiteLongitude = (-1) * SiteLongitude;
+                T.SiteElevation = 0;
+                T.SiteTemperature = 20;
                 T.Refraction = false;
                 T.SetAzimuthElevation(Azimuth, Altitude);
+                //DateTime utc = UTCDate;
+                double utc = astroUtilities.JulianDateUtc;
+                T.JulianDateUTC = utc;
 
-                SyncToCoordinates(T.RATopocentric, T.DECTopocentric);
+                SyncToCoordinates(T.RAJ2000, T.DecJ2000);
             }
             catch (Exception ex)
             {
