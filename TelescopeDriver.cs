@@ -138,6 +138,7 @@ namespace ASCOM.TTS160
             utilities = new Util(); //Initialise util object
             astroUtilities = new AstroUtils(); // Initialise astro-utilities object
             T = new Transform();
+            Slewing = false;
             //TODO: Implement your additional construction here
 
             tl.LogMessage("Telescope", "Completed initialization");
@@ -1336,6 +1337,7 @@ namespace ASCOM.TTS160
                                 //:Qs# Halt southward Slews
                                 //Returns: Nothing
                                 MiscResources.MovingSecondary = false;
+                                Slewing = false;
                                 break;
                             case ComparisonResult.Greater:
                                 CommandBlind(":Mn#", true);
@@ -1407,7 +1409,7 @@ namespace ASCOM.TTS160
                         (Direction == GuideDirections.guideNorth || Direction == GuideDirections.guideSouth))
                         throw new InvalidOperationException("Unable to PulseGuide while moving same axis.");
 
-                    var coordinatesBeforeMove = GetTelescopeRaAndDec();
+                    //var coordinatesBeforeMove = GetTelescopeRaAndDec();
 
                     tl.LogMessage("PulseGuide", "Using old pulse guiding technique");
                     switch (Direction)
@@ -1444,12 +1446,12 @@ namespace ASCOM.TTS160
 
                     tl.LogMessage("PulseGuide", "pulse guide complete");
 
-                    var coordinatesAfterMove = GetTelescopeRaAndDec();
+                    //var coordinatesAfterMove = GetTelescopeRaAndDec();
 
-                    tl.LogMessage("PulseGuide",
-                        $"Complete Before RA: {utilities.HoursToHMS(coordinatesBeforeMove.RightAscension)} Dec:{utilities.DegreesToDMS(coordinatesBeforeMove.Declination)}");
-                    tl.LogMessage("PulseGuide",
-                        $"Complete After RA: {utilities.HoursToHMS(coordinatesAfterMove.RightAscension)} Dec:{utilities.DegreesToDMS(coordinatesAfterMove.Declination)}");
+                    //tl.LogMessage("PulseGuide",
+                    //    $"Complete Before RA: {utilities.HoursToHMS(coordinatesBeforeMove.RightAscension)} Dec:{utilities.DegreesToDMS(coordinatesBeforeMove.Declination)}");
+                    //tl.LogMessage("PulseGuide",
+                    //    $"Complete After RA: {utilities.HoursToHMS(coordinatesAfterMove.RightAscension)} Dec:{utilities.DegreesToDMS(coordinatesAfterMove.Declination)}");
                 }
                 finally
                 {
@@ -1794,7 +1796,7 @@ namespace ASCOM.TTS160
         /// <param name="Altitude">Altitude to which to move to</param>
         public void SlewToAltAzAsync(double Azimuth, double Altitude)
         {
-            throw new ASCOM.MethodNotImplementedException();
+            throw new MethodNotImplementedException("SlewToAltAzAsync");
             try
             {
                 CheckConnected("SlewToAltAzAsync");
@@ -1884,7 +1886,7 @@ namespace ASCOM.TTS160
         /// </summary>
         public void SlewToCoordinatesAsync(double RightAscension, double Declination)
         {
-            throw new ASCOM.MethodNotImplementedException();
+            throw new MethodNotImplementedException("SlewToCoordinatesAsync");
             tl.LogMessage("SlewToCoordinates", "Setting Coordinates as Target and Slewing");
             try
             {
@@ -2038,7 +2040,7 @@ namespace ASCOM.TTS160
         /// </summary>
         public async void SlewToTargetAsync()
         {
-            throw new ASCOM.MethodNotImplementedException();
+            throw new MethodNotImplementedException("SlewToTargetAsync");
             tl.LogMessage("SlewToTarget", "Slewing To Target");
 
             try
@@ -2522,7 +2524,7 @@ namespace ASCOM.TTS160
 
                     int mo = Int32.Parse(localdate.Substring(0, 2));
                     int da = Int32.Parse(localdate.Substring(3, 2));
-                    int yr = Int32.Parse(localdate.Substring(6, 2));
+                    int yr = Int32.Parse(localdate.Substring(6, 2)) + 2000;
 
                     int hh = Int32.Parse(localtime.Substring(0, 2));
                     int mm = Int32.Parse(localtime.Substring(3, 2));
