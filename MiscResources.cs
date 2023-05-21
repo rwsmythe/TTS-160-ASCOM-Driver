@@ -1,4 +1,6 @@
-﻿namespace ASCOM.TTS160
+﻿using System;
+
+namespace ASCOM.TTS160
 {
     internal class MiscResources
     {
@@ -84,5 +86,26 @@
 
         }
 
+        public static short _SettleTime = 2;
+
+        public static short SettleTime
+        {
+            get => _SettleTime;
+            internal set => _SettleTime = value;
+        }
+        private static Boolean _isSlewingAsync = false;
+        public static Boolean IsSlewingAsync
+        {
+            get => _isSlewingAsync;
+            internal set => _isSlewingAsync = value;
+        }
+
+        private static DateTime _SlewSettleStart = DateTime.MinValue;
+
+        public static DateTime SlewSettleStart
+        {
+            get => _SlewSettleStart;
+            internal set => _SlewSettleStart = value;
+        }
     }
 }

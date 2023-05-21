@@ -22,6 +22,7 @@
 //
 // Date			Who	Vers	Description
 // -----------	---	-----	-------------------------------------------------------
+// 21MAY2023    RWS 0.9.0   Passed ASCOM Compliance testing, ready to begin field testing
 // 26APR2023    RWS 0.0.2   Further feature addition, commenced use of MiscResources
 //                          in part to simulate features normally done in hardware
 // 15APR2023	RWS	0.0.1	Initial edit, created from ASCOM driver template
@@ -118,6 +119,9 @@ namespace ASCOM.TTS160
         /// </summary>
         private static readonly Mutex serMutex = new Mutex();
 
+        // object used for locking to prevent multiple drivers accessing common code at the same time
+        private static readonly object LockObject = new object();
+
         /// <summary>
         /// Variable to provide coordinate Transforms
         /// </summary>
@@ -194,7 +198,7 @@ namespace ASCOM.TTS160
         /// </returns>
         public string Action(string actionName, string actionParameters)
         {
-            LogMessage("", "Action {0}, parameters {1} not implemented", actionName, actionParameters);
+            //tl.LogMessage("", "Action {0}, parameters {1} not implemented", actionName, actionParameters);
             throw new ASCOM.ActionNotImplementedException("Action " + actionName + " is not implemented by this driver");
         }
 
@@ -209,25 +213,34 @@ namespace ASCOM.TTS160
         /// </param>
         public void CommandBlind(string command, bool raw)
         {
-            CheckConnected("CommandBlind");
-
-            try
+            lock (LockObject)
             {
-                tl.LogMessage("CommandBlind", $"raw: {raw} command {command}");
                 CheckConnected("CommandBlind");
 
-                serMutex.WaitOne();  //Ensure no collisions!
-                serialPort.ClearBuffers();
-                serialPort.Transmit(command);
-                serMutex.ReleaseMutex();
+                try
+                {
+                    tl.LogMessage("CommandBlind", $"raw: {raw} command {command}");
+                    CheckConnected("CommandBlind");
 
-                //utilities.WaitForMilliseconds(100); //limit transmit rate...disable this to see how Mutex does...
-                tl.LogMessage("CommandBlind", "Completed");
-            }
-            catch (Exception ex)
-            {
-                tl.LogMessage("CommandBlind", $"Error: {ex.Message}");
-                throw;
+                    tl.LogMessage("CommandBlindMutex", "Set");
+                    //serMutex.WaitOne();  //Ensure no collisions!
+                    serialPort.ClearBuffers();
+                    serialPort.Transmit(command);
+
+                    //utilities.WaitForMilliseconds(100); //limit transmit rate...disable this to see how Mutex does...
+                    utilities.WaitForMilliseconds(50); //limit transmit rate...disabled to see if Mutex works!
+                    tl.LogMessage("CommandBlind", "Completed");
+                }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("CommandBlind", $"Error: {ex.Message}");
+                    throw;
+                }
+                finally
+                {
+                    //serMutex.ReleaseMutex();
+                    //tl.LogMessage("CommandBlindMutex", "Release");
+                }
             }
             // TODO The optional CommandBlind method should either be implemented OR throw a MethodNotImplementedException
             // If implemented, CommandBlind must send the supplied command to the device and return immediately without waiting for a response
@@ -249,28 +262,39 @@ namespace ASCOM.TTS160
         /// </returns>
         public bool CommandBool(string command, bool raw)
         {
-            try
+            lock (LockObject)
             {
-                CheckConnected("CommandBool");
-                // TODO The optional CommandBool method should either be implemented OR throw a MethodNotImplementedException
-                // If implemented, CommandBool must send the supplied command to the mount, wait for a response and parse this to return a True or False value
+                try
+                {
+                    CheckConnected("CommandBool");
+                    // TODO The optional CommandBool method should either be implemented OR throw a MethodNotImplementedException
+                    // If implemented, CommandBool must send the supplied command to the mount, wait for a response and parse this to return a True or False value
 
-                //string retString = CommandString(command, raw); // Send the command and wait for the response
+                    //string retString = CommandString(command, raw); // Send the command and wait for the response
 
-                serMutex.WaitOne();
-                serialPort.ClearBuffers();
-                serialPort.Transmit(command);
-                var result = serialPort.ReceiveCounted(1);  //assumes that all return strings are # terminated...is this true?
-                serMutex.ReleaseMutex();
+                    tl.LogMessage("CommandBoolMutex", "Set");
+                    //serMutex.WaitOne();
+                    serialPort.ClearBuffers();
+                    serialPort.Transmit(command);
+                    var result = serialPort.ReceiveCounted(1);  //assumes that all return strings are # terminated...is this true?
+                                                                //serMutex.ReleaseMutex();
 
-                bool retBool = char.GetNumericValue(result[0]) == 1; // Parse the returned string and create a boolean True / False value
-                                                                        //Does not take into account if retString[0] is not 1 or 0...            
-                return retBool; // Return the boolean value to the client
-            }
-            catch (Exception ex)
-            {
-                tl.LogMessage("CommandString", $"Error: {ex.Message}");
-                throw;
+
+                    bool retBool = char.GetNumericValue(result[0]) == 1; // Parse the returned string and create a boolean True / False value
+                                                                         //Does not take into account if retString[0] is not 1 or 0...            
+                    utilities.WaitForMilliseconds(50); //limit transmit rate...disabled to see if Mutex works!
+                    return retBool; // Return the boolean value to the client
+                }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("CommandString", $"Error: {ex.Message}");
+                    throw;
+                }
+                finally
+                {
+                    //serMutex.ReleaseMutex();
+                    //tl.LogMessage("CommandBoolMutex", "Release");
+                }
             }
             //throw new ASCOM.MethodNotImplementedException("CommandBool");
         }
@@ -295,25 +319,35 @@ namespace ASCOM.TTS160
 
             //throw new ASCOM.MethodNotImplementedException("CommandString");
 
-            try
+            lock (LockObject)
             {
-                tl.LogMessage("CommandString", $"raw: {raw} command {command}");
-                CheckConnected("CommandString");
+                try
+                {
+                    tl.LogMessage("CommandString", $"raw: {raw} command {command}");
+                    CheckConnected("CommandString");
 
-                serMutex.WaitOne();
-                serialPort.ClearBuffers();
-                serialPort.Transmit(command);
-                var result = serialPort.ReceiveTerminated("#");  //assumes that all return strings are # terminated...is this true?
-                serMutex.ReleaseMutex();
+                    tl.LogMessage("CommandStringMutex", "Set");
+                    //serMutex.WaitOne();
+                    serialPort.ClearBuffers();
+                    serialPort.Transmit(command);
+                    var result = serialPort.ReceiveTerminated("#");  //assumes that all return strings are # terminated...is this true?
+                    tl.LogMessage("CommandString pre Mutex Release", $"Completed: {result}");
+                    //serMutex.ReleaseMutex();
 
-                tl.LogMessage("CommandString", $"Completed: {result}");
-                //utilities.WaitForMilliseconds(100); //limit transmit rate...disabled to see if Mutex works!
-                return result;
-            }
-            catch (Exception ex)
-            {
-                tl.LogMessage("CommandString", $"Error: {ex.Message}");
-                throw;
+                    tl.LogMessage("CommandString", $"Completed: {result}");
+                    utilities.WaitForMilliseconds(50); //limit transmit rate...disabled to see if Mutex works!
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("CommandString", $"Error: {ex.Message}");
+                    throw;
+                }
+                finally
+                {
+                    //serMutex.ReleaseMutex();
+                    //tl.LogMessage("CommandStringMutex", "Release");
+                }
             }
 
         }
@@ -959,8 +993,8 @@ namespace ASCOM.TTS160
                 {
                     CheckConnected("CanSlewAltAzAsync");
                     
-                    tl.LogMessage("CanSlewAltAzAsync", "Get - " + false.ToString());
-                    return false;
+                    tl.LogMessage("CanSlewAltAzAsync", "Get - " + true.ToString());
+                    return true;
                 }
                 catch (Exception ex)
                 {
@@ -981,8 +1015,8 @@ namespace ASCOM.TTS160
                 {
                     CheckConnected("CanSlewAsync");
                     
-                    tl.LogMessage("CanSlewAsync", "Get - " + false.ToString());
-                    return false;
+                    tl.LogMessage("CanSlewAsync", "Get - " + true.ToString());
+                    return true;
                 }
                 catch (Exception ex)
                 {
@@ -1153,7 +1187,7 @@ namespace ASCOM.TTS160
                     
                     //TTS-160 uses accepts J2000 coordinates
 
-                    EquatorialCoordinateType equatorialSystem = EquatorialCoordinateType.equJ2000;
+                    EquatorialCoordinateType equatorialSystem = EquatorialCoordinateType.equTopocentric;
                     tl.LogMessage("EquatorialCoordinateType", "Get - " + equatorialSystem.ToString());
                     return equatorialSystem;
                 }
@@ -1253,6 +1287,8 @@ namespace ASCOM.TTS160
         /// <param name="Axis">The physical axis about which movement is desired</param>
         /// <param name="Rate">The rate of motion (deg/sec) about the specified axis</param>
         // Implementation of this function based on code from Generic Meade Driver
+        // Note: ASCOM non-compliance in that Tracking is not able to be disabled
+        // by the driver
         public void MoveAxis(TelescopeAxes Axis, double Rate)
         {
             try
@@ -1288,21 +1324,30 @@ namespace ASCOM.TTS160
                             case ComparisonResult.Equals:
                                 //if (!MiscResources.IsGuiding)
                                 //{
-                                    //Not implemented for TTS-160 driver
-                                    //SetSlewingMinEndTime();
+                                //Not implemented for TTS-160 driver
+                                //SetSlewingMinEndTime();
                                 //}
+                               
+                                tl.LogMessage("MoveAxis", "Stop Movement");
+                                for (int i = 0; i < 4; i++)
+                                {
+                                    CommandBlind(":Qe#", true);
+                                    //:Qe# Halt eastward Slews
+                                    //Returns: Nothing
+                                    CommandBlind(":Qw#", true);
+                                    //:Qw# Halt westward Slews
+                                    //Returns: Nothing
+                                    utilities.WaitForMilliseconds(100);
+                                }
 
-                                //SharedResourcesWrapper.MovingPrimary = false;
-                                CommandBlind(":Qe#", true);
-                                //:Qe# Halt eastward Slews
-                                //Returns: Nothing
-                                CommandBlind(":Qw#", true);
-                                //:Qw# Halt westward Slews
-                                //Returns: Nothing
+                                
                                 MiscResources.MovingPrimary = false;
+                                //utilities.WaitForMilliseconds(SlewSettleTime * 1000);
+                                tl.LogMessage("MoveAxis", "Secondary Stop Movement - Slewing False");
                                 Slewing = false;
                                 break;
                             case ComparisonResult.Greater:
+                                tl.LogMessage("MoveAxis", "Move East");
                                 CommandBlind(":Me#", true);
                                 //:Me# Move Telescope East at current slew rate
                                 //Returns: Nothing
@@ -1310,6 +1355,7 @@ namespace ASCOM.TTS160
                                 Slewing = true;
                                 break;
                             case ComparisonResult.Lower:
+                                tl.LogMessage("MoveAxis", "Move West");
                                 CommandBlind(":Mw#", true);
                                 //:Mw# Move Telescope West at current slew rate
                                 //Returns: Nothing
@@ -1325,21 +1371,29 @@ namespace ASCOM.TTS160
                             case ComparisonResult.Equals:
                                 //if (!MiscResources.IsGuiding)
                                 //{
-                                    //Not implemented in TTS-160 Driver
-                                    //SetSlewingMinEndTime();
+                                //Not implemented in TTS-160 Driver
+                                //SetSlewingMinEndTime();
                                 //}
 
+                                tl.LogMessage("MoveAxis", "Secondary Stop Movement");
+                                for (int i = 0; i < 4; i++)
+                                {
+                                    CommandBlind(":Qn#", true);
+                                    //:Qn# Halt northward Slews
+                                    //Returns: Nothing
+                                    CommandBlind(":Qs#", true);
+                                    //:Qs# Halt southward Slews
+                                    //Returns: Nothing
+                                    utilities.WaitForMilliseconds(100);
+                                }
+
                                 MiscResources.MovingSecondary = false;
-                                CommandBlind(":Qn#", true);
-                                //:Qn# Halt northward Slews
-                                //Returns: Nothing
-                                CommandBlind(":Qs#", true);
-                                //:Qs# Halt southward Slews
-                                //Returns: Nothing
-                                MiscResources.MovingSecondary = false;
+                                //utilities.WaitForMilliseconds(SlewSettleTime * 1000);
+                                tl.LogMessage("MoveAxis", "Secondary Stop Movement - Slewing False");
                                 Slewing = false;
                                 break;
                             case ComparisonResult.Greater:
+                                tl.LogMessage("MoveAxis", "Move North");
                                 CommandBlind(":Mn#", true);
                                 //:Mn# Move Telescope North at current slew rate
                                 //Returns: Nothing
@@ -1347,6 +1401,7 @@ namespace ASCOM.TTS160
                                 Slewing = true;
                                 break;
                             case ComparisonResult.Lower:
+                                tl.LogMessage("MoveAxis", "Move South");
                                 CommandBlind(":Ms#", true);
                                 //:Ms# Move Telescope South at current slew rate
                                 //Returns: Nothing
@@ -1415,30 +1470,39 @@ namespace ASCOM.TTS160
                     switch (Direction)
                     {
                         case GuideDirections.guideEast:
+                            tl.LogMessage("GuideEast", "Start MoveAxis");
                             MoveAxis(TelescopeAxes.axisPrimary, 1);
+                            tl.LogMessage("GuideEast", "IsPulseGuiding = True");
                             IsPulseGuiding = true;
-                            utilities.WaitForMilliseconds(Duration);
+                            tl.LogMessage("GuideEast", "Commence Wait");
+                            //utilities.WaitForMilliseconds(Duration);
+                            Thread.Sleep(Duration);
+                            tl.LogMessage("GuideEast", "Stop MoveAxis");
                             MoveAxis(TelescopeAxes.axisPrimary, 0);
+                            tl.LogMessage("GuideEast", "IsPulseGuiding = False");
                             IsPulseGuiding = false;
                             break;
                         case GuideDirections.guideNorth:
                             MoveAxis(TelescopeAxes.axisSecondary, 1);
                             IsPulseGuiding = true;
-                            utilities.WaitForMilliseconds(Duration);
+                            //utilities.WaitForMilliseconds(Duration);
+                            Thread.Sleep(Duration);
                             MoveAxis(TelescopeAxes.axisSecondary, 0);
                             IsPulseGuiding = false;
                             break;
                         case GuideDirections.guideSouth:
                             MoveAxis(TelescopeAxes.axisSecondary, -1);
                             IsPulseGuiding = true;
-                            utilities.WaitForMilliseconds(Duration);
+                            //utilities.WaitForMilliseconds(Duration);
+                            Thread.Sleep(Duration);
                             MoveAxis(TelescopeAxes.axisSecondary, 0);
                             IsPulseGuiding = false;
                             break;
                         case GuideDirections.guideWest:
                             MoveAxis(TelescopeAxes.axisPrimary, -1);
                             IsPulseGuiding = true;
-                            utilities.WaitForMilliseconds(Duration);
+                            //utilities.WaitForMilliseconds(Duration);
+                            Thread.Sleep(Duration);
                             MoveAxis(TelescopeAxes.axisPrimary, 0);
                             IsPulseGuiding = false;
                             break;
@@ -1692,9 +1756,9 @@ namespace ASCOM.TTS160
 
                     var result = CommandString(":Gg#", true);
                     //:Gg# Get Site Longitude
-                    //Returns: sDDD*MM#
+                    //Returns: sDDD*MM#, east negative
 
-                    double siteLongitude = utilities.DMSToDegrees(result);
+                    double siteLongitude = -1*utilities.DMSToDegrees(result); //correct to West negative
 
                     tl.LogMessage("SiteLongitude", "Get - " + utilities.DegreesToDMS(siteLongitude, ":", ":"));
                     return siteLongitude;
@@ -1720,13 +1784,20 @@ namespace ASCOM.TTS160
         {
             get
             {
-                tl.LogMessage("SlewSettleTime Get", "Not implemented");
-                throw new PropertyNotImplementedException("SlewSettleTime", false);
+                return MiscResources.SettleTime;
             }
             set
             {
-                tl.LogMessage("SlewSettleTime Set", "Not implemented");
-                throw new PropertyNotImplementedException("SlewSettleTime", true);
+                try
+                {
+                    if (value > 0) { MiscResources.SettleTime = value; }
+                    else { throw new InvalidValueException("Settle Time must be > 0"); }
+                }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("SlewSettleTime Set", ex.ToString());
+                    throw;
+                }
             }
         }
 
@@ -1741,7 +1812,7 @@ namespace ASCOM.TTS160
             {
                 CheckConnected("SlewToAltAz");
                 //TODO Parked is not implemented, no need to check
-                //TODO Tracking control is not implemented in TTS-160, no point in checking it
+                if (Tracking) { throw new ASCOM.InvalidOperationException("Cannot SlewToAltAz while Tracking"); }
 
                 if ((Azimuth < 0) || (Azimuth > 360)) { throw new ASCOM.InvalidValueException($"Invalid Azimuth ${Azimuth}"); }
                 if ((Altitude < 0) || (Altitude > 90)) { throw new ASCOM.InvalidValueException($"Invalid Altitude ${Altitude}"); }
@@ -1774,7 +1845,7 @@ namespace ASCOM.TTS160
                 {
                     curtargRA = 0;
                 }
-                SlewToCoordinates(T.RAJ2000, T.DecJ2000);
+                SlewToCoordinates(T.RATopocentric, T.DECTopocentric);
 
                 TargetDeclination = curtargDec;
                 TargetRightAscension = curtargRA;
@@ -1796,12 +1867,12 @@ namespace ASCOM.TTS160
         /// <param name="Altitude">Altitude to which to move to</param>
         public void SlewToAltAzAsync(double Azimuth, double Altitude)
         {
-            throw new MethodNotImplementedException("SlewToAltAzAsync");
+            //throw new MethodNotImplementedException("SlewToAltAzAsync");
             try
             {
                 CheckConnected("SlewToAltAzAsync");
                 //TODO Parked is not implemented, no need to check
-                //TODO Tracking control is not implemented in TTS-160, no point in checking it
+                if (Tracking) { throw new ASCOM.InvalidOperationException("Cannot SlewToAltAzAsync while Tracking"); }
 
                 if ((Azimuth < 0) || (Azimuth > 360)) { throw new ASCOM.InvalidValueException($"Invalid Azimuth ${Azimuth}"); }
                 if ((Altitude < 0) || (Altitude > 90)) { throw new ASCOM.InvalidValueException($"Invalid Altitude ${Altitude}"); }
@@ -1886,8 +1957,8 @@ namespace ASCOM.TTS160
         /// </summary>
         public void SlewToCoordinatesAsync(double RightAscension, double Declination)
         {
-            throw new MethodNotImplementedException("SlewToCoordinatesAsync");
-            tl.LogMessage("SlewToCoordinates", "Setting Coordinates as Target and Slewing");
+            //throw new MethodNotImplementedException("SlewToCoordinatesAsync");
+            tl.LogMessage("SlewToCoordinatesAsync", "Setting Coordinates as Target and Slewing");
             try
             {
                 CheckConnected("SlewToCoordinatesAsync");
@@ -1910,6 +1981,7 @@ namespace ASCOM.TTS160
                 {
                     throw new ASCOM.InvalidValueException($"Invalid Right Ascension: {RightAscension}");
                 }
+                tl.LogMessage("Starting Async Slew", RightAscension.ToString() + "; " + Declination.ToString());
                 SlewToTargetAsync();
             }
             catch (Exception ex)
@@ -1919,11 +1991,37 @@ namespace ASCOM.TTS160
             }
         }
 
+        /*
+        int _countTaken = 0;
+        public void SlewToTarget()
+        {
+            
+            //Prevents parallel execution of GoTo
+            //other alternative is to hold until slew complete
+            Interlocked.Increment(ref _countTaken);
+            try
+            {
+                if (_countTaken > 1)
+                    throw new ASCOM.InvalidOperationException("Error: GoTo in Progress");
+                SlewStart();
+            }
+            catch (Exception ex)
+            {
+                tl.LogMessage("SlewToTarget", $"Error: {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _countTaken);
+            }
+        }*/
+
         /// <summary>
         /// Move the telescope to the <see cref="TargetRightAscension" /> and <see cref="TargetDeclination" /> coordinates.
         /// This method must be implemented if <see cref="CanSlew" /> returns True.
         /// It does not return until the slew is complete.
         /// </summary>
+               
         public void SlewToTarget()
         {
             tl.LogMessage("SlewToTarget", "Slewing To Target");
@@ -1932,8 +2030,17 @@ namespace ASCOM.TTS160
             {
                 if (!MiscResources.IsTargetSet) { throw new Exception("Target Not Set"); }
                 CheckConnected("SlewToTarget");
+                if (MiscResources.IsSlewingToTarget) //Are we currently in a GoTo?
+                {
+                    //ToDo: Decide whether to throw SlewInProgress exception or simply wait...
+                    
+                    throw new InvalidOperationException("Error: GoTo In Progress");                    
+                    //while (MiscResources.IsSlewingToTarget) { utilities.WaitForMilliseconds(200); }
+                }
+
                 //TTS-160 does not have Park implemented, no need to check
                 //TTS-160 does not have Tracking control implemented, no need to check
+                bool wasTracking = Tracking;
 
                 double TargRA = MiscResources.Target.RightAscension;
                 double TargDec = MiscResources.Target.Declination;
@@ -1945,86 +2052,114 @@ namespace ASCOM.TTS160
                 Slewing = true;
                 MiscResources.IsSlewingToTarget = true;
 
-                //Create loop to monitor slewing and return when done
-                utilities.WaitForMilliseconds(500); //give motors time to start
-                double resid = 1000; //some number greater than .0001 (~0.5/3600)
-                double targresid = 1000;
-                double threshold = 0.5 / 3600; //0.5 second accuracy
-                double targthreshold = 10; //start checking w/in 10 seconds of target
-                int inc = 3; //3 readings <.0001 to determine at target
-                int faultinc = 300; //Long term check used to check for no movement
-                int interval = 100; //100 msec between readings
-                var CoordOld = GetTelescopeRaAndDec();  //Get initial readings
-                
-                while (inc >= 0)
+                //If we were tracking before, TTS-160 will stop tracking on commencement of slew
+                //then resume tracking when slew complete.  If TTS-160 was NOT tracking, we need to
+                //implement a loop to check on slew status using mount position rates
+
+                if (wasTracking)
                 {
-                    utilities.WaitForMilliseconds(interval); //let the mount move a bit
-                    var CoordNew = GetTelescopeRaAndDec(); //get telescope coords
-                    double RADelt = CoordNew.RightAscension - CoordOld.RightAscension;
-                    double DecDelt = CoordNew.Declination - CoordOld.Declination;
-                    double RADeltTarg = CoordNew.RightAscension - TargRA;
-                    double DecDeltTarg = CoordNew.Declination - TargDec;
-                    resid = Math.Sqrt(Math.Pow(RADelt, 2) + Math.Pow(DecDelt, 2));
-                    targresid = Math.Sqrt(Math.Pow(RADeltTarg, 2) + Math.Pow(DecDeltTarg, 2));
-                    if ((resid <= threshold) & (targresid <= targthreshold))
+                    int counter = 0;
+                    int RateLimit = 200; //Wait time between queries, in msec
+                    int TimeLimit = 300; //How long to wait for slew to finish before throwing error, in sec
+                    while (!Tracking)
                     {
-                        switch (inc)  //We are good, decrement the count
-                        {         
-                            case 0:
-                                Slewing = false;
-                                MiscResources.IsSlewingToTarget = false;
-                                return;
-                            default:
-                                inc--;
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        switch (inc)  //We are bad, increment the count up to 3
+                        utilities.WaitForMilliseconds(200); //limit asking rate to 0.2 Hz
+                        counter++;
+                        if (counter > TimeLimit * 1000 / RateLimit)
                         {
-                            case 2:
-                                inc++;
-                                break;
-                            case 1:
-                                inc++;
-                                break;
-                            case 0:
-                                inc++;
-                                break;
+                            AbortSlew();
+                            throw new ASCOM.DriverException("SlewToTarget Failed: Timeout");
                         }
                     }
-
-                    if (resid <= threshold)
-                    {
-                        switch (faultinc)  //No motion detected, decrement the count
-                        {
-                            case 0:
-                                Slewing = false;
-                                MiscResources.IsSlewingToTarget = false;
-                                CommandBlind(":Q#", true);
-                                throw new ASCOM.DriverException("SlewToTarget Failed");
-                            default:
-                                faultinc--;
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        //Motion detected, increment back up
-                        if (faultinc < 300)
-                        {
-                            faultinc++;
-                        }
-                    }
-
-                    CoordOld.RightAscension = CoordNew.RightAscension;
-                    CoordOld.Declination = CoordNew.Declination;
-                    CoordNew.RightAscension = 0;
-                    CoordNew.Declination = 0;
-
+                    //utilities.WaitForMilliseconds(SlewSettleTime * 1000);
+                    Thread.Sleep(SlewSettleTime * 1000);
+                    Slewing = false;
+                    MiscResources.IsSlewingToTarget = false;
+                    return;
                 }
+                else
+                {
+                    //Create loop to monitor slewing and return when done
+                    utilities.WaitForMilliseconds(500); //give motors time to start
+                    double resid = 1000; //some number greater than .0001 (~0.5/3600)
+                    double targresid = 1000;
+                    double threshold = 0.5 / 3600; //0.5 second accuracy
+                    double targthreshold = 10; //start checking w/in 10 seconds of target
+                    int inc = 3; //3 readings <.0001 to determine at target
+                    int faultinc = 300; //Long term check used to check for no movement
+                    int interval = 100; //100 msec between readings
+                    var CoordOld = GetTelescopeRaAndDec();  //Get initial readings
 
+                    while (inc >= 0)
+                    {
+                        utilities.WaitForMilliseconds(interval); //let the mount move a bit
+                        var CoordNew = GetTelescopeRaAndDec(); //get telescope coords
+                        double RADelt = CoordNew.RightAscension - CoordOld.RightAscension;
+                        double DecDelt = CoordNew.Declination - CoordOld.Declination;
+                        double RADeltTarg = CoordNew.RightAscension - TargRA;
+                        double DecDeltTarg = CoordNew.Declination - TargDec;
+                        resid = Math.Sqrt(Math.Pow(RADelt, 2) + Math.Pow(DecDelt, 2)); //need to convert this to alt/az rather than RA/Dec
+                        targresid = Math.Sqrt(Math.Pow(RADeltTarg, 2) + Math.Pow(DecDeltTarg, 2));
+                        if ((resid <= threshold) & (targresid <= targthreshold))
+                        {
+                            switch (inc)  //We are good, decrement the count
+                            {
+                                case 0:
+                                    utilities.WaitForMilliseconds(SlewSettleTime * 1000);
+                                    Slewing = false;
+                                    MiscResources.IsSlewingToTarget = false;
+                                    return;
+                                default:
+                                    inc--;
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            switch (inc)  //We are bad, increment the count up to 3
+                            {
+                                case 2:
+                                    inc++;
+                                    break;
+                                case 1:
+                                    inc++;
+                                    break;
+                                case 0:
+                                    inc++;
+                                    break;
+                            }
+                        }
+
+                        if (resid <= threshold)
+                        {
+                            switch (faultinc)  //No motion detected, decrement the count
+                            {
+                                case 0:
+                                    Slewing = false;
+                                    MiscResources.IsSlewingToTarget = false;
+                                    CommandBlind(":Q#", true);
+                                    throw new ASCOM.DriverException("SlewToTarget Failed");
+                                default:
+                                    faultinc--;
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            //Motion detected, increment back up
+                            if (faultinc < 300)
+                            {
+                                faultinc++;
+                            }
+                        }
+
+                        CoordOld.RightAscension = CoordNew.RightAscension;
+                        CoordOld.Declination = CoordNew.Declination;
+                        CoordNew.RightAscension = 0;
+                        CoordNew.Declination = 0;
+
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -2040,15 +2175,23 @@ namespace ASCOM.TTS160
         /// </summary>
         public async void SlewToTargetAsync()
         {
-            throw new MethodNotImplementedException("SlewToTargetAsync");
-            tl.LogMessage("SlewToTarget", "Slewing To Target");
+            //throw new MethodNotImplementedException("SlewToTargetAsync");
+            tl.LogMessage("SlewToTargetAsync", "Slewing To Target");
 
             try
             {
                 if (!MiscResources.IsTargetSet) { throw new Exception("Target Not Set"); }
-                CheckConnected("SlewToTarget");
+                CheckConnected("SlewToTargetAsync");
+                if (MiscResources.IsSlewingToTarget) //Are we currently in a GoTo?
+                {
+                    //ToDo: Decide whether to throw SlewInProgress exception or simply wait...
+
+                    throw new ASCOM.InvalidOperationException("Error: GoTo In Progress");
+                    //while (MiscResources.IsSlewingToTarget) { utilities.WaitForMilliseconds(200); }
+                }
+
+                if (!Tracking) { throw new ASCOM.InvalidOperationException("Error: Tracking not enabled"); }
                 //TTS-160 does not have Park implemented, no need to check
-                //TTS-160 does not have Tracking control implemented, no need to check
 
                 double TargRA = MiscResources.Target.RightAscension;
                 double TargDec = MiscResources.Target.Declination;
@@ -2058,107 +2201,67 @@ namespace ASCOM.TTS160
                 if (result) { throw new Exception("Unable to slew:" + result); }  //Need to review other implementation
 
                 Slewing = true;
-                MiscResources.IsSlewingToTarget = true;
+                MiscResources.IsSlewingToTarget = true;  //Might be redundant...
+                MiscResources.IsSlewingAsync = true;
 
-                //Create loop to monitor slewing and return when done
-                utilities.WaitForMilliseconds(500); //give motors time to start
-                double resid = 1000; //some number greater than .0001 (~0.5/3600)
-                double targresid = 1000;
-                double threshold = 0.5 / 3600; //0.5 second accuracy
-                double targthreshold = 10; //start checking w/in 10 seconds of target
-                int inc = 3; //3 readings <.0001 to determine at target
-                int faultinc = 300; //Long term check used to check for no movement
-                int interval = 100; //100 msec between readings
-                var CoordOld = GetTelescopeRaAndDec();  //Get initial readings
-                int timeout = 1 * 60 * 1000; //two minute timeout for task
-                using (CancellationTokenSource cts = new CancellationTokenSource(timeout)) //Use task and cancellation token to prevent infinite loop
+                //int timeout = 3 * 60 * 1000;
+                //using (CancellationTokenSource cts = new CancellationTokenSource(timeout)) //Use task and cancellation token to prevent infinite loop
+                //{
+                    //CancellationToken ct = cts.Token;
+
+                    //tl.LogMessage("Starting Async Task", "");
+                        
+                /*
+                Task task = Task.Run(() =>
                 {
-                    CancellationToken ct = cts.Token;
-                    try
-                    {
-                        Task task = Task.Run(() =>
-                        {
-                            while (inc >= 0)
+
+                            //If we were tracking before (required for async), TTS-160 will stop tracking on commencement of slew
+                            //then resume tracking when slew complete.
+
+                            int counter = 0;
+                            int RateLimit = 200; //Wait time between queries, in msec
+                            int TimeLimit = 120; //How long to wait for slew to finish before throwing error, in sec
+                            tl.LogMessage("First Track Get in Async", "");
+                            bool curTrack = Tracking;
+                            tl.LogMessage("Entering Async Loop, Tracking Check:", curTrack.ToString());
+                            while (!curTrack)
                             {
-                                utilities.WaitForMilliseconds(interval); //let the mount move a bit
-                                var CoordNew = GetTelescopeRaAndDec(); //get telescope coords
-                                double RADelt = CoordNew.RightAscension - CoordOld.RightAscension;
-                                double DecDelt = CoordNew.Declination - CoordOld.Declination;
-                                double RADeltTarg = CoordNew.RightAscension - TargRA;
-                                double DecDeltTarg = CoordNew.Declination - TargDec;
-                                resid = Math.Sqrt(Math.Pow(RADelt, 2) + Math.Pow(DecDelt, 2));
-                                targresid = Math.Sqrt(Math.Pow(RADeltTarg, 2) + Math.Pow(DecDeltTarg, 2));
-                                if ((resid <= threshold) & (targresid <= targthreshold))
+                                curTrack = Tracking;
+                                tl.LogMessage("Check Tracking Status", curTrack + " time: " + (counter*.2).ToString());
+                                utilities.WaitForMilliseconds(RateLimit); //limit asking rate to 0.2 Hz
+                                counter++;
+                                if (counter > TimeLimit * 1000 / RateLimit)
                                 {
-                                    switch (inc)  //We are good, decrement the count
-                                    {
-                                        case 0:
-                                            Slewing = false;
-                                            MiscResources.IsSlewingToTarget = false;
-                                            return;
-                                        default:
-                                            inc--;
-                                            break;
-                                    }
+                                    AbortSlew();
+                                    throw new ASCOM.DriverException("SlewToTarget Failed: Timeout");
                                 }
-                                else
-                                {
-                                    switch (inc)  //We are bad, increment the count up to 3
-                                    {
-                                        case 2:
-                                            inc++;
-                                            break;
-                                        case 1:
-                                            inc++;
-                                            break;
-                                        case 0:
-                                            inc++;
-                                            break;
-                                    }
-                                }
-
-                                if (resid <= threshold)
-                                {
-                                    switch (faultinc)  //No motion detected, decrement the count
-                                    {
-                                        case 0:
-                                            Slewing = false;
-                                            MiscResources.IsSlewingToTarget = false;
-                                            CommandBlind(":Q#", true);
-                                            throw new ASCOM.DriverException("SlewToTargetAsync Failed");
-                                        default:
-                                            faultinc--;
-                                            break;
-                                    }
-                                }
-                                else
-                                {
-                                    //Motion detected, increment back up
-                                    if (faultinc < 300)
-                                    {
-                                        faultinc++;
-                                    }
-                                }
-
-                                CoordOld.RightAscension = CoordNew.RightAscension;
-                                CoordOld.Declination = CoordNew.Declination;
-                                CoordNew.RightAscension = 0;
-                                CoordNew.Declination = 0;
-
-                                ct.ThrowIfCancellationRequested();
                             }
-                        }, ct);
-                        await task;
-                    }
-                    catch (TaskCanceledException)
-                    {
-                        //timeout received, now what?
-                        CommandBlind(":Q#", true); //We think something went wrong, stop the slew
-                        Slewing = false;
-                        MiscResources.IsSlewingToTarget = false;
-                        throw new Exception("Slew Timeout Reached, Motion Cancelled");
-                    }
+                            tl.LogMessage("Final Tracking Status", Tracking.ToString() + " at " + (counter*.2).ToString());
+                            utilities.WaitForMilliseconds(SlewSettleTime * 1000);
+                            tl.LogMessage("SlewSettleTime", "Complete");
+                            Slewing = false;
+                            tl.LogMessage("New Slew Status", Slewing.ToString());
+                            MiscResources.IsSlewingToTarget = false;
+                            return;
+                           
+                });
+                */
+                /*try
+                {
+                    tl.LogMessage("Starting await task", "");
+                    Task task = SlewMonitorAsync();
+                    return;
                 }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("Exception detected in await", ex.ToString());
+                    throw new Exception("Unknown Await Exception", ex);
+
+                }*/
+           
+                    
+
+                //}
             }
             catch (Exception ex)
             {
@@ -2166,6 +2269,46 @@ namespace ASCOM.TTS160
                 throw;
             }
         }
+
+        //method to monitor Async Slews
+        //public async Task SlewMonitorAsync()
+        //{
+            //Task task = Task.Run(() =>
+            //{
+
+                //If we were tracking before (required for async), TTS-160 will stop tracking on commencement of slew
+                //then resume tracking when slew complete.
+            /*    
+            await Task.Run(() =>
+                {
+                    int counter = 0;
+                    int RateLimit = 200; //Wait time between queries, in msec
+                    int TimeLimit = 120; //How long to wait for slew to finish before throwing error, in sec
+                    tl.LogMessage("First Track Get in Async", "");
+                    bool curTrack = Tracking;
+                    tl.LogMessage("Entering Async Loop, Tracking Check:", curTrack.ToString());
+                    while (!curTrack)
+                    {
+                        curTrack = Tracking;
+                        tl.LogMessage("Check Tracking Status", curTrack + " time: " + (counter * .2).ToString());
+                        utilities.WaitForMilliseconds(RateLimit); //limit asking rate to 0.2 Hz
+                        counter++;
+                        if (counter > TimeLimit * 1000 / RateLimit)
+                        {
+                            AbortSlew();
+                            throw new ASCOM.DriverException("SlewToTarget Failed: Timeout");
+                        }
+                    }
+                    tl.LogMessage("Final Tracking Status", Tracking.ToString() + " at " + (counter * .2).ToString());
+                    utilities.WaitForMilliseconds(SlewSettleTime * 1000);
+                    tl.LogMessage("SlewSettleTime", "Complete");
+                    Slewing = false;
+                    tl.LogMessage("New Slew Status", Slewing.ToString());
+                    MiscResources.IsSlewingToTarget = false;
+
+                });
+
+        }*/
 
         /// <summary>
         /// True if telescope is in the process of moving in response to one of the
@@ -2178,10 +2321,50 @@ namespace ASCOM.TTS160
             {
                 try
                 {
-                    tl.LogMessage("Slewing - Get", "Getting Slew Status");
                     CheckConnected("Slewing");
+                    tl.LogMessage("Slewing - Get", "Getting Slew Status");
+                    //Catching the end of an async slew event
+                    //TODO - Add error checking to see if we actually ended where we wanted
+                    if ((MiscResources.IsSlewing) && (MiscResources.IsSlewingAsync) && (Tracking))
+                    {
+                        MiscResources.IsSlewingToTarget = false;
+                        MiscResources.IsSlewingAsync = false;
+                        if ((SlewSettleTime > 0) && (MiscResources.SlewSettleStart == DateTime.MinValue))
+                        {
+                            MiscResources.SlewSettleStart = DateTime.Now;
+                            tl.LogMessage("Slewing Status", MiscResources.IsSlewing.ToString());
+                            return MiscResources.IsSlewing;
+                        }
+                        else
+                        {
+                            tl.LogMessage("Slewing Status", false.ToString());
+                            MiscResources.IsSlewing = false;
+                            return false;
+                        }
+                    }
+                    else if ((MiscResources.IsSlewing) && (MiscResources.SlewSettleStart > DateTime.MinValue))
+                    {
+                        TimeSpan ts = DateTime.Now.Subtract(MiscResources.SlewSettleStart);
+                        if (ts.TotalSeconds >= SlewSettleTime)
+                        {
+                            tl.LogMessage("Slewing Status", false.ToString());
+                            MiscResources.IsSlewing = false;
+                            MiscResources.SlewSettleStart = DateTime.MinValue;
+                            return false;
+                        }
+                        else
+                        {
+                            tl.LogMessage("Slewing Status", MiscResources.IsSlewing.ToString());
+                            return MiscResources.IsSlewing;
+                        }
+                    }
+                    else
+                    {
+                        tl.LogMessage("Slewing Status", MiscResources.IsSlewing.ToString());
+                        return MiscResources.IsSlewing;
+                    }    
 
-                    return MiscResources.IsSlewing;
+
                 }
                 catch (Exception ex)
                 {
@@ -2205,7 +2388,7 @@ namespace ASCOM.TTS160
             {
                 CheckConnected("SyncToAltAz");
                 //TODO Parked is not implemented, no need to check
-                //TODO Tracking control is not implemented in TTS-160, no point in checking it
+                if (Tracking) { throw new ASCOM.InvalidOperationException("Cannot SyncToAltAz while Tracking"); }
 
                 if ((Azimuth < 0) || (Azimuth > 360)) { throw new ASCOM.InvalidValueException($"Invalid Azimuth ${Azimuth}"); }
                 if ((Altitude < 0) || (Altitude > 90)) { throw new ASCOM.InvalidValueException($"Invalid Altitude ${Altitude}"); }
@@ -2220,7 +2403,7 @@ namespace ASCOM.TTS160
                 double utc = astroUtilities.JulianDateUtc;
                 T.JulianDateUTC = utc;
 
-                SyncToCoordinates(T.RAJ2000, T.DecJ2000);
+                SyncToCoordinates(T.RATopocentric, T.DECTopocentric);
             }
             catch (Exception ex)
             {
@@ -2561,11 +2744,11 @@ namespace ASCOM.TTS160
                     DateTime localdatetime = value.AddHours((-1) * utcoffsetnum);
 
                     string newdate = localdatetime.ToString("MM/dd/yy");
-                    bool res = CommandBool(":" + newdate + "#", true);
+                    bool res = CommandBool(":SC" + newdate + "#", true);
                     if (!res) { throw new ASCOM.InvalidValueException("UTC Date Set Invalid Date: " + newdate); }
 
                     string newtime = localdatetime.ToString("HH:mm:ss");
-                    res = CommandBool(":" + newtime + "#", true);
+                    res = CommandBool(":SL" + newtime + "#", true);
                     if (!res ) { throw new ASCOM.InvalidValueException("UTC Date Set Invalid Time: "+ newtime); }
                 }
                 catch (Exception ex)
