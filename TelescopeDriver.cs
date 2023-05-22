@@ -517,7 +517,11 @@ namespace ASCOM.TTS160
                 CheckConnected("AbortSlew");
                 CommandBlind(":Q#", true);
                 Slewing = false;
+                MiscResources.IsSlewingAsync = false;
                 MiscResources.IsSlewingToTarget = false;
+                MiscResources.SlewSettleStart = DateTime.MinValue;
+                IsPulseGuiding = false;
+                MiscResources.IsGuiding = false;
 
                 tl.LogMessage("AbortSlew", "Completed");
             }
