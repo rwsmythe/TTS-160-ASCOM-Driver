@@ -22,6 +22,7 @@
 //
 // Date			Who	Vers	Description
 // -----------	---	-----	-------------------------------------------------------
+// 23MAY2023    RWS 0.9.1   Added in the native PulseGuide commands
 // 21MAY2023    RWS 0.9.0   Passed ASCOM Compliance testing, ready to begin field testing
 // 26APR2023    RWS 0.0.2   Further feature addition, commenced use of MiscResources
 //                          in part to simulate features normally done in hardware
