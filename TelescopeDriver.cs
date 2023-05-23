@@ -1449,15 +1449,17 @@ namespace ASCOM.TTS160
             tl.LogMessage("PulseGuide", $"pulse guide direction {Direction} duration {Duration}");
             try
             {
-                //TODO Need to check for valid direction
+                //TODO Need to check for valid direction.  Or not, should be verified because it is enumerated
                 CheckConnected("PulseGuide");
                 //Park is not yet implemented...
                 //CheckParked();
 
-                if (MiscResources.IsSlewingToTarget)
-                    throw new InvalidOperationException("Unable to PulseGuide while slewing to target.");
+                if (MiscResources.IsSlewingToTarget) { throw new InvalidOperationException("Unable to PulseGuide while slewing to target."); }
+                if (Duration > 9999) { throw new InvalidValueException("Duration greater than 9999 msec"); }
+                if (Duration < 0) { throw new InvalidValueException("Duration less than 0"); }
 
                 MiscResources.IsGuiding = true;
+                IsPulseGuiding = true;
                 try
                 {
                     if (MiscResources.MovingPrimary &&
@@ -1468,62 +1470,52 @@ namespace ASCOM.TTS160
                         (Direction == GuideDirections.guideNorth || Direction == GuideDirections.guideSouth))
                         throw new InvalidOperationException("Unable to PulseGuide while moving same axis.");
 
-                    //var coordinatesBeforeMove = GetTelescopeRaAndDec();
+                    var RABefore = RightAscension;
+                    var DecBefore = Declination;
 
-                    tl.LogMessage("PulseGuide", "Using old pulse guiding technique");
+                    tl.LogMessage("PulseGuide", "Guiding with Pulse Guide command");
                     switch (Direction)
                     {
                         case GuideDirections.guideEast:
-                            tl.LogMessage("GuideEast", "Start MoveAxis");
-                            MoveAxis(TelescopeAxes.axisPrimary, 1);
-                            tl.LogMessage("GuideEast", "IsPulseGuiding = True");
-                            IsPulseGuiding = true;
-                            tl.LogMessage("GuideEast", "Commence Wait");
-                            //utilities.WaitForMilliseconds(Duration);
+                            var guidecmde = ":Mge" + Duration.ToString("D4") + "#";
+                            tl.LogMessage("GuideEast", guidecmde);
+                            CommandBlind(guidecmde, true);
                             Thread.Sleep(Duration);
-                            tl.LogMessage("GuideEast", "Stop MoveAxis");
-                            MoveAxis(TelescopeAxes.axisPrimary, 0);
-                            tl.LogMessage("GuideEast", "IsPulseGuiding = False");
-                            IsPulseGuiding = false;
                             break;
                         case GuideDirections.guideNorth:
-                            MoveAxis(TelescopeAxes.axisSecondary, 1);
-                            IsPulseGuiding = true;
-                            //utilities.WaitForMilliseconds(Duration);
+                            var guidecmdn = ":Mgn" + Duration.ToString("D4") + "#";
+                            tl.LogMessage("GuideNorth", guidecmdn);
+                            CommandBlind(guidecmdn, true);
                             Thread.Sleep(Duration);
-                            MoveAxis(TelescopeAxes.axisSecondary, 0);
-                            IsPulseGuiding = false;
                             break;
                         case GuideDirections.guideSouth:
-                            MoveAxis(TelescopeAxes.axisSecondary, -1);
-                            IsPulseGuiding = true;
-                            //utilities.WaitForMilliseconds(Duration);
+                            var guidecmds = ":Mgs" + Duration.ToString("D4") + "#";
+                            tl.LogMessage("GuideSouth", guidecmds);
+                            CommandBlind(guidecmds, true);
                             Thread.Sleep(Duration);
-                            MoveAxis(TelescopeAxes.axisSecondary, 0);
-                            IsPulseGuiding = false;
                             break;
                         case GuideDirections.guideWest:
-                            MoveAxis(TelescopeAxes.axisPrimary, -1);
-                            IsPulseGuiding = true;
-                            //utilities.WaitForMilliseconds(Duration);
+                            var guidecmdw = ":Mgw" + Duration.ToString("D4") + "#";
+                            tl.LogMessage("GuideWest", guidecmdw);
+                            CommandBlind(guidecmdw, true);
                             Thread.Sleep(Duration);
-                            MoveAxis(TelescopeAxes.axisPrimary, 0);
-                            IsPulseGuiding = false;
                             break;
                     }
 
                     tl.LogMessage("PulseGuide", "pulse guide complete");
 
-                    //var coordinatesAfterMove = GetTelescopeRaAndDec();
+                    var RAAfter = RightAscension;
+                    var DecAfter = Declination;
 
-                    //tl.LogMessage("PulseGuide",
-                    //    $"Complete Before RA: {utilities.HoursToHMS(coordinatesBeforeMove.RightAscension)} Dec:{utilities.DegreesToDMS(coordinatesBeforeMove.Declination)}");
-                    //tl.LogMessage("PulseGuide",
-                    //    $"Complete After RA: {utilities.HoursToHMS(coordinatesAfterMove.RightAscension)} Dec:{utilities.DegreesToDMS(coordinatesAfterMove.Declination)}");
+                    tl.LogMessage("PulseGuide",
+                        $"Complete Before RA: {utilities.HoursToHMS(RABefore)} Dec:{utilities.DegreesToDMS(DecBefore)}");
+                    tl.LogMessage("PulseGuide",
+                        $"Complete After RA: {utilities.HoursToHMS(RAAfter)} Dec:{utilities.DegreesToDMS(DecAfter)}");
                 }
                 finally
                 {
                     MiscResources.IsGuiding = false;
+                    IsPulseGuiding = false;
                 }
             }
             catch (Exception ex)
@@ -1531,8 +1523,6 @@ namespace ASCOM.TTS160
                 tl.LogMessage("PulseGuide", $"Error performing pulse guide: {ex.Message}");
                 throw;
             }
-            //tl.LogMessage("PulseGuide", "Not implemented");
-            //throw new MethodNotImplementedException("PulseGuide");
         }
 
         private MiscResources.EquatorialCoordinates GetTelescopeRaAndDec()
