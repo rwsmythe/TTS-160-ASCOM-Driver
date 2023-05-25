@@ -118,7 +118,7 @@ namespace ASCOM.TTS160
         /// <summary>
         /// Variable to provide traffic control for serial communications
         /// </summary>
-        private static readonly Mutex serMutex = new Mutex();
+        //private static readonly Mutex serMutex = new Mutex();
 
         // object used for locking to prevent multiple drivers accessing common code at the same time
         private static readonly object LockObject = new object();
@@ -127,6 +127,11 @@ namespace ASCOM.TTS160
         /// Variable to provide coordinate Transforms
         /// </summary>
         private Transform T;
+
+        /// <summary>
+        /// Variable to control transmission rate and provide mount time to respond
+        /// </summary>
+        private int TRANSMIT_WAIT_TIME = 50; //msec
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TTS160"/> class.
@@ -216,20 +221,18 @@ namespace ASCOM.TTS160
         {
             lock (LockObject)
             {
-                CheckConnected("CommandBlind");
 
                 try
                 {
-                    tl.LogMessage("CommandBlind", $"raw: {raw} command {command}");
-                    CheckConnected("CommandBlind");
 
-                    tl.LogMessage("CommandBlindMutex", "Set");
-                    //serMutex.WaitOne();  //Ensure no collisions!
+                    CheckConnected("CommandBlind");
+                    tl.LogMessage("CommandBlind", $"raw: {raw} command {command}");
+
+                    if (!raw) { command = ":" + command + "#"; }
+
                     serialPort.ClearBuffers();
                     serialPort.Transmit(command);
-
-                    //utilities.WaitForMilliseconds(100); //limit transmit rate...disable this to see how Mutex does...
-                    utilities.WaitForMilliseconds(50); //limit transmit rate...disabled to see if Mutex works!
+                    utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate.  May need to change to Thread.Sleep();
                     tl.LogMessage("CommandBlind", "Completed");
                 }
                 catch (Exception ex)
@@ -237,16 +240,7 @@ namespace ASCOM.TTS160
                     tl.LogMessage("CommandBlind", $"Error: {ex.Message}");
                     throw;
                 }
-                finally
-                {
-                    //serMutex.ReleaseMutex();
-                    //tl.LogMessage("CommandBlindMutex", "Release");
-                }
             }
-            // TODO The optional CommandBlind method should either be implemented OR throw a MethodNotImplementedException
-            // If implemented, CommandBlind must send the supplied command to the device and return immediately without waiting for a response
-
-            //throw new ASCOM.MethodNotImplementedException("CommandBlind");
         }
 
         /// <summary>
@@ -265,25 +259,25 @@ namespace ASCOM.TTS160
         {
             lock (LockObject)
             {
+
                 try
                 {
-                    CheckConnected("CommandBool");
                     // TODO The optional CommandBool method should either be implemented OR throw a MethodNotImplementedException
                     // If implemented, CommandBool must send the supplied command to the mount, wait for a response and parse this to return a True or False value
 
-                    //string retString = CommandString(command, raw); // Send the command and wait for the response
+                    CheckConnected("CommandBool");
 
-                    tl.LogMessage("CommandBoolMutex", "Set");
-                    //serMutex.WaitOne();
+                    tl.LogMessage("CommandBool", $"raw: {raw} command {command}");
+
+                    if (!raw) { command = ":" + command + "#"; }
+
                     serialPort.ClearBuffers();
                     serialPort.Transmit(command);
-                    var result = serialPort.ReceiveCounted(1);  //assumes that all return strings are # terminated...is this true?
-                                                                //serMutex.ReleaseMutex();
-
-
+                    utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate.  Trying wait before reading return.  Lock should allow this to work
+                    var result = serialPort.ReceiveCounted(1);
                     bool retBool = char.GetNumericValue(result[0]) == 1; // Parse the returned string and create a boolean True / False value
                                                                          //Does not take into account if retString[0] is not 1 or 0...            
-                    utilities.WaitForMilliseconds(50); //limit transmit rate...disabled to see if Mutex works!
+                    tl.LogMessage("CommandBool Completed", $"Result: {result} Parsed as: {retBool}");
                     return retBool; // Return the boolean value to the client
                 }
                 catch (Exception ex)
@@ -291,13 +285,7 @@ namespace ASCOM.TTS160
                     tl.LogMessage("CommandString", $"Error: {ex.Message}");
                     throw;
                 }
-                finally
-                {
-                    //serMutex.ReleaseMutex();
-                    //tl.LogMessage("CommandBoolMutex", "Release");
-                }
             }
-            //throw new ASCOM.MethodNotImplementedException("CommandBool");
         }
 
         /// <summary>
@@ -324,30 +312,25 @@ namespace ASCOM.TTS160
             {
                 try
                 {
-                    tl.LogMessage("CommandString", $"raw: {raw} command {command}");
                     CheckConnected("CommandString");
 
-                    tl.LogMessage("CommandStringMutex", "Set");
-                    //serMutex.WaitOne();
+                    tl.LogMessage("CommandString", $"raw: {raw} command {command}");
+ 
+                    if (!raw) { command = ":" + command + "#"; }
+
                     serialPort.ClearBuffers();
                     serialPort.Transmit(command);
+                    utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate
                     var result = serialPort.ReceiveTerminated("#");  //assumes that all return strings are # terminated...is this true?
-                    tl.LogMessage("CommandString pre Mutex Release", $"Completed: {result}");
-                    //serMutex.ReleaseMutex();
 
                     tl.LogMessage("CommandString", $"Completed: {result}");
-                    utilities.WaitForMilliseconds(50); //limit transmit rate...disabled to see if Mutex works!
+
                     return result;
                 }
                 catch (Exception ex)
                 {
                     tl.LogMessage("CommandString", $"Error: {ex.Message}");
                     throw;
-                }
-                finally
-                {
-                    //serMutex.ReleaseMutex();
-                    //tl.LogMessage("CommandStringMutex", "Release");
                 }
             }
 
@@ -368,10 +351,6 @@ namespace ASCOM.TTS160
             utilities = null;
             astroUtilities.Dispose();
             astroUtilities = null;
-            //serMutex.Dispose();
-            //serialPort.Dispose();
-            //serialPort = null;
-
         }
 
         /// <summary>
@@ -523,6 +502,8 @@ namespace ASCOM.TTS160
                 MiscResources.SlewSettleStart = DateTime.MinValue;
                 IsPulseGuiding = false;
                 MiscResources.IsGuiding = false;
+                MiscResources.MovingPrimary = false;
+                MiscResources.MovingSecondary = false;
 
                 tl.LogMessage("AbortSlew", "Completed");
             }
@@ -548,7 +529,7 @@ namespace ASCOM.TTS160
                     switch (ret[0])
                     {
                         case 'A': return DeviceInterface.AlignmentModes.algAltAz;
-                        case 'P': return DeviceInterface.AlignmentModes.algPolar;
+                        case 'P': return DeviceInterface.AlignmentModes.algPolar;  //This should be the only response from TTS-160
                         case 'G': return DeviceInterface.AlignmentModes.algGermanPolar;
                         default: throw new DriverException("Unknown AlignmentMode Reported");
                     }
@@ -559,10 +540,6 @@ namespace ASCOM.TTS160
                     tl.LogMessage("AlignmentMode Get", $"Error: {ex.Message}");
                     throw;
                 }
-
-                
-                //tl.LogMessage("AlignmentMode Get", "Not implemented");
-                //throw new PropertyNotImplementedException("AlignmentMode", false);
             }
         }
 
@@ -573,9 +550,6 @@ namespace ASCOM.TTS160
         {
             get
             {
-                //tl.LogMessage("Altitude", "Not implemented");
-                //throw new PropertyNotImplementedException("Altitude", false);
-
                 try
                 {
 
@@ -584,7 +558,7 @@ namespace ASCOM.TTS160
 
                     var result = CommandString(":GA#", true);
                     //:GA# Get telescope altitude
-                    //Returns: DDD*MM#T or DDD*MM'SS#
+                    //Returns: DDD*MM# or DDD*MM'SS#
                     //The current telescope Altitude depending on the selected precision.
 
                     double alt = utilities.DMSToDegrees(result);
@@ -690,7 +664,7 @@ namespace ASCOM.TTS160
 
                     var result = CommandString(":GZ#", true);
                     //:GZ# Get telescope azimuth
-                    //Returns: DDD*MM#T or DDD*MM'SS#
+                    //Returns: DDD*MM#T or DDD*MM'SS# verify low precision returns with T at the end!
                     //The current telescope Azimuth depending on the selected precision.
 
                     double az = utilities.DMSToDegrees(result);
@@ -1139,9 +1113,9 @@ namespace ASCOM.TTS160
             get
             {
                 //Declination Rate not implemented by TTS-160, return 0.0
-                double declination = 0.0;
-                tl.LogMessage("DeclinationRate", "Get - " + declination.ToString());
-                return declination;
+                double declinationRate = 0.0;
+                tl.LogMessage("DeclinationRate", "Get - " + declinationRate.ToString());
+                return declinationRate;
             }
             set
             {
@@ -1190,7 +1164,7 @@ namespace ASCOM.TTS160
                 {
                     CheckConnected("EquatorialCoordinateType");
                     
-                    //TTS-160 uses accepts J2000 coordinates
+                    //TTS-160 uses accepts Topocentric coordinates
 
                     EquatorialCoordinateType equatorialSystem = EquatorialCoordinateType.equTopocentric;
                     tl.LogMessage("EquatorialCoordinateType", "Get - " + equatorialSystem.ToString());
@@ -1334,20 +1308,15 @@ namespace ASCOM.TTS160
                                 //}
                                
                                 tl.LogMessage("MoveAxis", "Stop Movement");
-                                for (int i = 0; i < 4; i++)
-                                {
-                                    CommandBlind(":Qe#", true);
+                                CommandBlind(":Qe#", true);
                                     //:Qe# Halt eastward Slews
                                     //Returns: Nothing
-                                    CommandBlind(":Qw#", true);
+                                CommandBlind(":Qw#", true);
                                     //:Qw# Halt westward Slews
                                     //Returns: Nothing
-                                    utilities.WaitForMilliseconds(100);
-                                }
-
                                 
                                 MiscResources.MovingPrimary = false;
-                                //utilities.WaitForMilliseconds(SlewSettleTime * 1000);
+                                //Per ASCOM standard, SHOULD be incorporating SlewSettleTime
                                 tl.LogMessage("MoveAxis", "Secondary Stop Movement - Slewing False");
                                 Slewing = false;
                                 break;
@@ -1381,19 +1350,15 @@ namespace ASCOM.TTS160
                                 //}
 
                                 tl.LogMessage("MoveAxis", "Secondary Stop Movement");
-                                for (int i = 0; i < 4; i++)
-                                {
-                                    CommandBlind(":Qn#", true);
+                                CommandBlind(":Qn#", true);
                                     //:Qn# Halt northward Slews
                                     //Returns: Nothing
-                                    CommandBlind(":Qs#", true);
+                                CommandBlind(":Qs#", true);
                                     //:Qs# Halt southward Slews
                                     //Returns: Nothing
-                                    utilities.WaitForMilliseconds(100);
-                                }
 
                                 MiscResources.MovingSecondary = false;
-                                //utilities.WaitForMilliseconds(SlewSettleTime * 1000);
+                                //Per ASCOM standard, SHOULD be incorporating SlewSettleTime
                                 tl.LogMessage("MoveAxis", "Secondary Stop Movement - Slewing False");
                                 Slewing = false;
                                 break;
