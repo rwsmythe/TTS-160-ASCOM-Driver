@@ -2400,7 +2400,8 @@ namespace ASCOM.TTS160
                 {
                     throw new ASCOM.InvalidValueException($"Invalid Right Ascension: {RightAscension}");
                 }
-                CommandBlind(":CM#", true);
+                var ret = CommandString(":CM#", true);
+
             }
             catch (Exception ex)
             {
