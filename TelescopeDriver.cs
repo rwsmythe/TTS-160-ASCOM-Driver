@@ -22,6 +22,7 @@
 //
 // Date			Who	Vers	Description
 // -----------	---	-----	-------------------------------------------------------
+// 29MAY2023    RWS 0.9.3   Corrected issues in Sync, UTCDate, SiderealTime, MoveAxis, and AxisRates
 // 23MAY2023    RWS 0.9.1   Added in the native PulseGuide commands
 // 21MAY2023    RWS 0.9.0   Passed ASCOM Compliance testing, ready to begin field testing
 // 26APR2023    RWS 0.0.2   Further feature addition, commenced use of MiscResources
@@ -128,12 +129,12 @@ namespace ASCOM.TTS160
         /// <summary>
         /// Variable to provide coordinate Transforms
         /// </summary>
-        private Transform T;
+        private readonly Transform T;
 
         /// <summary>
         /// Variable to control transmission rate and provide mount time to respond
         /// </summary>
-        private int TRANSMIT_WAIT_TIME = 50; //msec
+        private readonly int TRANSMIT_WAIT_TIME = 50; //msec
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TTS160"/> class.
@@ -431,7 +432,7 @@ namespace ASCOM.TTS160
             {
                 Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
                 // TODO customise this driver description
-                string driverInfo = "Information about the driver itself. Version: " + String.Format(CultureInfo.InvariantCulture, "{0}.{1}", version.Major, version.Minor);
+                string driverInfo = "Driver for TTS-160. Version: " + String.Format(CultureInfo.InvariantCulture, "{0}.{1}", version.Major, version.Minor);
                 tl.LogMessage("DriverInfo Get", driverInfo);
                 return driverInfo;
             }
