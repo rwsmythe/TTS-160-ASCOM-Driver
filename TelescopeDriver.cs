@@ -1290,7 +1290,7 @@ namespace ASCOM.TTS160
                         break;
                     
                     case var s when new[] { 0.000277777777777778, 0.000833333333333333, 0.00138888888888889,
-                        0.00277777777777778, 0.00555555555555555 }.Contains(s):
+                        0.00277777777777778, 0.00555555555555555, 1, 2, 3, 4 }.Contains(s):
                     //do nothing, rate selection not supported, but this is valid
 
                     break;
@@ -2372,6 +2372,8 @@ namespace ASCOM.TTS160
                 T.JulianDateUTC = utc;
 
                 SyncToCoordinates(T.RATopocentric, T.DECTopocentric);
+                tl.LogMessage("SyncToAltAz", "Complete");
+
             }
             catch (Exception ex)
             {
@@ -2408,9 +2410,9 @@ namespace ASCOM.TTS160
                 {
                     throw new ASCOM.InvalidValueException($"Invalid Right Ascension: {RightAscension}");
                 }
-                CommandString(":CM#", true);//For some reason TTS-160 returns a message and not catching it causes
-                                            //further commands to act funny (results are 1 order off despite the
-                                            //buffer clears
+                var ret = CommandString(":CM#", true);
+                tl.LogMessage("SyncToCoordinates", "Complete: " + ret);
+
             }
             catch (Exception ex)
             {
@@ -2432,10 +2434,10 @@ namespace ASCOM.TTS160
                 //TODO Parked is not implemented, no need to check
                 //TODO Tracking control is not implemented in TTS-160, no point in checking it
 
-                CommandString(":CM#", true);  //For some reason TTS-160 returns a message and not catching it causes
+                var ret = CommandString(":CM#", true);  //For some reason TTS-160 returns a message and not catching it causes
                                                 //further commands to act funny (results are 1 order off despite the
                                                 //buffer clears
-                tl.LogMessage("SyncToTarget", "Complete");
+                tl.LogMessage("SyncToTarget", "Complete: " + ret);
             }
             catch (Exception ex)
             {
