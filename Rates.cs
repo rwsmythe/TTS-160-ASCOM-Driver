@@ -96,29 +96,33 @@ namespace ASCOM.TTS160
             //
             switch (axis)
             {
-                //TTS-160 sets rates in the handpad only, no exposure to LX200 interface -> only values are 0 and 1
-                case TelescopeAxes.axisPrimary:                   
+                //TTS-160 sets rates in the handpad only, no exposure to LX200 interface
+                case TelescopeAxes.axisPrimary:
                     // TODO Initialize this array with any Primary axis rates that your driver may provide
                     // Example: m_Rates = new Rate[] { new Rate(10.5, 30.2), new Rate(54.0, 43.6) }
-                    this.rates = new Rate[] { new Rate(0, 1) };
+                    // Currently, TTS-160 supports 1, 3, 5, 10, 20 "/sec.  Selection happens in the handpad, these are for reference only
+                    rates = new Rate[] { new Rate(0.000277777777777778, 0.000277777777777778), new Rate(0.000833333333333333, 0.000833333333333333),
+                    new Rate( 0.00138888888888889, 0.00138888888888889), new Rate( 0.00277777777777778, 0.00277777777777778),
+                    new Rate( 0.00555555555555555, 0.00555555555555555), new Rate( 1, 1), new Rate( 2, 2), new Rate( 3, 3),
+                    new Rate( 4, 4)};
                     break;
                 case TelescopeAxes.axisSecondary:
-                    // TODO Initialize this array with any Secondary axis rates that your driver may provide
-                    this.rates = new Rate[] { new Rate(0, 1) };
+                    // Currently, TTS-160 supports 1, 3, 5, 10, 20 "/sec.  Selection happens in the handpad, these are for reference only
+                    rates = new Rate[] { new Rate(0.000277777777777778, 0.000277777777777778), new Rate(0.000833333333333333, 0.000833333333333333),
+                    new Rate( 0.00138888888888889, 0.00138888888888889), new Rate( 0.00277777777777778, 0.00277777777777778),
+                    new Rate( 0.00555555555555555, 0.00555555555555555), new Rate( 1, 1), new Rate( 2, 2), new Rate( 3, 3),
+                    new Rate( 4, 4)};
                     break;
                 case TelescopeAxes.axisTertiary:
                     // TODO Initialize this array with any Tertiary axis rates that your driver may provide
-                    this.rates = new Rate[0];
+                    rates = new Rate[0];
                     break;
             }
         }
 
         #region IAxisRates Members
 
-        public int Count
-        {
-            get { return this.rates.Length; }
-        }
+        public int Count => rates.Length;
 
         public void Dispose()
         {
@@ -132,7 +136,7 @@ namespace ASCOM.TTS160
 
         public IRate this[int index]
         {
-            get { return this.rates[index - 1]; }	// 1-based
+            get { return rates[index - 1]; }	// 1-based
         }
 
         #endregion

@@ -58,6 +58,8 @@ using System.Drawing.Text;
 using System.Runtime.Serialization.Formatters;
 using System.Diagnostics.Eventing.Reader;
 using System.Windows.Forms;
+using System.Linq;
+using System.Reflection;
 
 namespace ASCOM.TTS160
 {
@@ -273,10 +275,9 @@ namespace ASCOM.TTS160
 
                     serialPort.ClearBuffers();
                     serialPort.Transmit(command);
-                    utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate.  Trying wait before reading return.  Lock should allow this to work
                     var result = serialPort.ReceiveCounted(1);
                     bool retBool = char.GetNumericValue(result[0]) == 1; // Parse the returned string and create a boolean True / False value
-                                                                         //Does not take into account if retString[0] is not 1 or 0...            
+                    utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate.  Trying wait before reading return.  Lock should allow this to work                                                     //Does not take into account if retString[0] is not 1 or 0...            
                     tl.LogMessage("CommandBool Completed", $"Result: {result} Parsed as: {retBool}");
                     return retBool; // Return the boolean value to the client
                 }
@@ -320,9 +321,8 @@ namespace ASCOM.TTS160
 
                     serialPort.ClearBuffers();
                     serialPort.Transmit(command);
-                    utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate
                     var result = serialPort.ReceiveTerminated("#");  //assumes that all return strings are # terminated...is this true?
-
+                    utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate
                     tl.LogMessage("CommandString", $"Completed: {result}");
 
                     return result;
@@ -638,7 +638,9 @@ namespace ASCOM.TTS160
             {
                 CheckConnected("AxisRates");
                 tl.LogMessage("AxisRates", "Get - " + Axis.ToString());
-                return new AxisRates(Axis);
+                var buf = new AxisRates(Axis);
+                tl.LogMessage("AxisRates", "Returning - " + buf.ToString() + "; Count: " + buf.Count.ToString());
+                return buf;
             }
             catch (Exception ex)
             {
@@ -654,8 +656,6 @@ namespace ASCOM.TTS160
         {
             get
             {
-                //tl.LogMessage("Azimuth Get", "Not implemented");
-                //throw new PropertyNotImplementedException("Azimuth", false);
                 try
                 {
 
@@ -1284,12 +1284,16 @@ namespace ASCOM.TTS160
 
                 switch (absRate)
                 {
-                    case 0:
+
+                    case (0):
                         //do nothing, it's ok this time as we're halting the slew.
                         break;
-                    case 1:
-                        //do nothing, rate selection not supported, but this is valid
-                        break;
+                    
+                    case var s when new[] { 0.000277777777777778, 0.000833333333333333, 0.00138888888888889,
+                        0.00277777777777778, 0.00555555555555555 }.Contains(s):
+                    //do nothing, rate selection not supported, but this is valid
+
+                    break;
                     default:
                         //invalid rate exception
                         throw new InvalidValueException($"Rate {Rate} not supported");
@@ -1635,7 +1639,11 @@ namespace ASCOM.TTS160
                     CheckConnected("SiderealTime");
                     var result = CommandString(":GS#", true).TrimEnd('#');
                     double siderealTime = utilities.HMSToHours(result);
-                    tl.LogMessage("SiderealTime", "Get - " + siderealTime.ToString());
+                    double siteLongitude = SiteLongitude;
+                    tl.LogMessage("SiderealTime", "Get GMST - " + siderealTime.ToString());
+                    siderealTime += siteLongitude / 360.0 * 24.0;
+                    siderealTime = astroUtilities.ConditionRA(siderealTime);
+                    tl.LogMessage("SiderealTime", "Local Sidereal - " + siderealTime.ToString());
                     return siderealTime;
                 }
                 catch (Exception ex)
@@ -2400,8 +2408,9 @@ namespace ASCOM.TTS160
                 {
                     throw new ASCOM.InvalidValueException($"Invalid Right Ascension: {RightAscension}");
                 }
-                var ret = CommandString(":CM#", true);
-
+                CommandString(":CM#", true);//For some reason TTS-160 returns a message and not catching it causes
+                                            //further commands to act funny (results are 1 order off despite the
+                                            //buffer clears
             }
             catch (Exception ex)
             {
@@ -2423,7 +2432,9 @@ namespace ASCOM.TTS160
                 //TODO Parked is not implemented, no need to check
                 //TODO Tracking control is not implemented in TTS-160, no point in checking it
 
-                CommandBlind(":CM#", true);
+                CommandString(":CM#", true);  //For some reason TTS-160 returns a message and not catching it causes
+                                                //further commands to act funny (results are 1 order off despite the
+                                                //buffer clears
                 tl.LogMessage("SyncToTarget", "Complete");
             }
             catch (Exception ex)
@@ -2680,7 +2691,7 @@ namespace ASCOM.TTS160
                     DateTime utcDate = lcl.AddHours(utcoffsetnum);
 
                     //DateTime utcDate = DateTime.UtcNow;
-                    tl.LogMessage("UTCDate", "Get - " + String.Format("MM/dd/yy HH:mm:ss", utcDate));
+                    tl.LogMessage("UTCDate", "Get - " + utcDate.ToString("MM/dd/yy HH:mm:ss")); // String.Format("MM/dd/yy HH:mm:ss", utcDate));
                     return utcDate;
                 }
                 catch (Exception ex)
