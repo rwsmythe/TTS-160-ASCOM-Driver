@@ -22,6 +22,7 @@
 //
 // Date			Who	Vers	Description
 // -----------	---	-----	-------------------------------------------------------
+// 03JUN2023    RWS 0.9.4   Added in capability to add site elevation and adjust Slew Settling Time in setup dialog
 // 29MAY2023    RWS 0.9.3   Corrected issues in Sync, UTCDate, SiderealTime, MoveAxis, and AxisRates
 // 23MAY2023    RWS 0.9.1   Added in the native PulseGuide commands
 // 21MAY2023    RWS 0.9.0   Passed ASCOM Compliance testing, ready to begin field testing
@@ -89,6 +90,7 @@ namespace ASCOM.TTS160
         /// Driver description that displays in the ASCOM Chooser.
         /// </summary>
         private static string driverDescription = "ASCOM Telescope Driver for TTS-160";
+        private static string driverVersion = "0.9.4";
         private Serial serialPort;
 
         internal static string comPortProfileName = "COM Port"; // Constants used for Profile persistence
@@ -97,6 +99,18 @@ namespace ASCOM.TTS160
         internal static string traceStateDefault = "false";
 
         internal static string comPort; // Variables to hold the current device configuration
+
+        internal static string siteElevationProfileName = "Site Elevation";
+        internal static string siteElevationDefault = "0";
+        internal static string SlewSettleTimeName = "Slew Settle Time";
+        internal static string SlewSettleTimeDefault = "2";
+        internal static string SiteLatitudeName = "Site Latitude";
+        internal static string SiteLatitudeDefault = "100";
+        internal static string SiteLongitudeName = "Site Longitude";
+        internal static string SiteLongitudeDefault = "200";
+
+        //internal static double SiteElevationProfile;
+        //internal static short SlewSettleTimeProfile;
 
         /// <summary>
         /// Private variable to hold the connected state
@@ -136,15 +150,19 @@ namespace ASCOM.TTS160
         /// </summary>
         private readonly int TRANSMIT_WAIT_TIME = 50; //msec
 
+        ///<summary>
+        ///Accessible profile to apply changes to
+        /// </summary>
+        private ProfileProperties profileProperties = new ProfileProperties();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="TTS160"/> class.
         /// Must be public for COM registration.
         /// </summary>
         public Telescope()
         {
-            tl = new TraceLogger("", "TTS160");
-            ReadProfile(); // Read device configuration from the ASCOM Profile store
-
+            tl = new TraceLogger("", "TTS160 v. " + driverVersion);
+            profileProperties = ReadProfile();
             tl.LogMessage("Telescope", "Starting initialization");
 
             connectedState = false; // Initialise connected to false
@@ -152,6 +170,7 @@ namespace ASCOM.TTS160
             astroUtilities = new AstroUtils(); // Initialise astro-utilities object
             T = new Transform();
             Slewing = false;
+
             //TODO: Implement your additional construction here
 
             tl.LogMessage("Telescope", "Completed initialization");
@@ -177,12 +196,16 @@ namespace ASCOM.TTS160
             if (IsConnected)
                 System.Windows.Forms.MessageBox.Show("Already connected, just press OK");
 
+            ReadProfile();
+
             using (SetupDialogForm F = new SetupDialogForm(tl))
             {
+                F.SetProfile(profileProperties);
                 var result = F.ShowDialog();
                 if (result == System.Windows.Forms.DialogResult.OK)
                 {
-                    WriteProfile(); // Persist device configuration values to the ASCOM Profile store
+                    ProfileProperties currentProfile = F.GetProfile( profileProperties );
+                    WriteProfile( currentProfile ); // Persist device configuration values to the ASCOM Profile store
                 }
             }
         }
@@ -388,6 +411,11 @@ namespace ASCOM.TTS160
                             Connected = true
                         };
                         connectedState = true;
+
+                        profileProperties.SiteLatitude = SiteLatitude;
+                        profileProperties.SiteLongitude = SiteLongitude;
+                        WriteProfile(profileProperties);
+
                     }
                     catch (Exception ex)
                     {
@@ -395,16 +423,28 @@ namespace ASCOM.TTS160
                         throw new ASCOM.NotConnectedException($"Serial port connection error: {ex}");
                     }
 
-                    LogMessage("Connected Set", "Connecting to port {0}", comPort);
+                    tl.LogMessage("Connected Set", "Connecting to port " + comPort.ToString());
                 }
                 else
                 {
-                    //TODO add error handling
-                    serialPort.Connected = false;
-                    connectedState = false;
+                    tl.LogMessage("Connected Set", "Disconnecting from port " + comPort.ToString());
 
-                    LogMessage("Connected Set", "Disconnecting from port {0}", comPort);
-                    // TODO disconnect from the device
+                    try
+                    {
+                        profileProperties.SiteLatitude = SiteLatitude;
+                        profileProperties.SiteLongitude = SiteLongitude;
+                        WriteProfile(profileProperties);
+
+                        serialPort.Connected = false;
+                        connectedState = false;
+                    }
+                    catch (Exception ex) 
+                    {
+                        
+                        throw new ASCOM.DriverException($"Serial port disconnect error: {ex}");
+
+                    }
+
                 }
             }
         }
@@ -1663,13 +1703,16 @@ namespace ASCOM.TTS160
         {
             get
             {
-                tl.LogMessage("SiteElevation Get", "Not implemented");
-                throw new PropertyNotImplementedException("SiteElevation", false);
+                return profileProperties.SiteElevation;
+                //tl.LogMessage("SiteElevation Get", "Not implemented");
+                //throw new PropertyNotImplementedException("SiteElevation", false);
             }
             set
             {
-                tl.LogMessage("SiteElevation Set", "Not implemented");
-                throw new PropertyNotImplementedException("SiteElevation", true);
+                profileProperties.SiteElevation = value;
+                WriteProfile(profileProperties);
+                //tl.LogMessage("SiteElevation Set", "Not implemented");
+                //throw new PropertyNotImplementedException("SiteElevation", true);
             }
         }
 
@@ -1753,13 +1796,17 @@ namespace ASCOM.TTS160
         {
             get
             {
-                return MiscResources.SettleTime;
+                return profileProperties.SlewSettleTime;
             }
             set
             {
                 try
                 {
-                    if (value > 0) { MiscResources.SettleTime = value; }
+                    if (value > 0) 
+                    { 
+                        profileProperties.SlewSettleTime = value;
+                        WriteProfile(profileProperties);
+                    }
                     else { throw new InvalidValueException("Settle Time must be > 0"); }
                 }
                 catch (Exception ex)
@@ -2851,26 +2898,46 @@ namespace ASCOM.TTS160
         /// <summary>
         /// Read the device configuration from the ASCOM Profile store
         /// </summary>
-        internal void ReadProfile()
+        internal ProfileProperties ReadProfile()
         {
+
+            ProfileProperties profileProperties = new ProfileProperties();
+            
             using (Profile driverProfile = new Profile())
             {
+
                 driverProfile.DeviceType = "Telescope";
                 tl.Enabled = Convert.ToBoolean(driverProfile.GetValue(driverID, traceStateProfileName, string.Empty, traceStateDefault));
+                profileProperties.TraceLogger = tl.Enabled;
+                
                 comPort = driverProfile.GetValue(driverID, comPortProfileName, string.Empty, comPortDefault);
+                profileProperties.ComPort = comPort;
+
+                profileProperties.SiteElevation = Double.Parse(driverProfile.GetValue(driverID, siteElevationProfileName, string.Empty, siteElevationDefault));
+                profileProperties.SlewSettleTime = Int16.Parse(driverProfile.GetValue(driverID, SlewSettleTimeName, string.Empty, SlewSettleTimeDefault));
+                profileProperties.SiteLatitude = Double.Parse(driverProfile.GetValue(driverID, SiteLatitudeName, string.Empty, SiteLatitudeDefault));
+                profileProperties.SiteLongitude = Double.Parse(driverProfile.GetValue(driverID, SiteLongitudeName, string.Empty, SiteLongitudeDefault));
             }
+            return profileProperties;
         }
 
         /// <summary>
         /// Write the device configuration to the  ASCOM  Profile store
         /// </summary>
-        internal void WriteProfile()
+        internal void WriteProfile( ProfileProperties profileProperties )
         {
             using (Profile driverProfile = new Profile())
             {
                 driverProfile.DeviceType = "Telescope";
-                driverProfile.WriteValue(driverID, traceStateProfileName, tl.Enabled.ToString());
+
+                driverProfile.WriteValue(driverID, traceStateProfileName, profileProperties.TraceLogger.ToString());
                 if (!(comPort is null)) driverProfile.WriteValue(driverID, comPortProfileName, comPort.ToString());
+
+                driverProfile.WriteValue(driverID, siteElevationProfileName, profileProperties.SiteElevation.ToString());
+                driverProfile.WriteValue(driverID, SlewSettleTimeName, profileProperties.SlewSettleTime.ToString());
+                driverProfile.WriteValue(driverID, SiteLatitudeName, profileProperties.SiteLatitude.ToString());
+                driverProfile.WriteValue(driverID, SiteLongitudeName, profileProperties.SiteLongitude.ToString());
+
             }
         }
 

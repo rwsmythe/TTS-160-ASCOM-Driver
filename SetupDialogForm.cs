@@ -1,4 +1,5 @@
 using ASCOM.TTS160;
+using ASCOM.TTS160.Properties;
 using ASCOM.Utilities;
 using System;
 using System.Collections.Generic;
@@ -80,5 +81,72 @@ namespace ASCOM.TTS160
         {
 
         }
+
+        private void label4_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void SiteAltTxt_TextChanged(object sender, EventArgs e)
+        {
+            if (System.Text.RegularExpressions.Regex.IsMatch(SiteAltTxt.Text, "[^0-9]"))
+            {
+                MessageBox.Show("Please enter only numbers");
+                SiteAltTxt.Text = SiteAltTxt.Text.Remove(SiteAltTxt.Text.Length - 1);
+            }
+        }
+
+        private void SlewSetTimeTxt_TextChanged(object sender, EventArgs e)
+        {
+            if (System.Text.RegularExpressions.Regex.IsMatch(SlewSetTimeTxt.Text, "[^0-9]"))
+            {
+                MessageBox.Show("Please enter only numbers");
+                SlewSetTimeTxt.Text = SlewSetTimeTxt.Text.Remove(SlewSetTimeTxt.Text.Length - 1);
+            }
+        }
+        public ProfileProperties GetProfile( ProfileProperties CurProfile )
+        {
+            var profileProperties = new ProfileProperties
+            {
+
+                TraceLogger = chkTrace.Checked,
+                ComPort = comboBoxComPort.SelectedItem.ToString(),
+                SiteElevation = Double.Parse(SiteAltTxt.Text),
+                SlewSettleTime = Int16.Parse(SlewSetTimeTxt.Text),
+                SiteLatitude = CurProfile.SiteLatitude,
+                SiteLongitude = CurProfile.SiteLongitude
+
+            };
+
+            return profileProperties;
+        }
+
+        public void SetProfile(ProfileProperties profileProperties)
+        {
+
+            SiteAltTxt.Text = profileProperties.SiteElevation.ToString();
+
+            SlewSetTimeTxt.Text = profileProperties.SlewSettleTime.ToString();
+
+            if (profileProperties.SiteLatitude == 100)
+            {
+                SiteLatlbl.Text = "Not Yet Read";
+            }
+            else
+            {
+                SiteLatlbl.Text = profileProperties.SiteLatitude.ToString();
+            }
+
+            if (profileProperties.SiteLongitude == 200)
+            {
+                SiteLonglbl.Text = "Not Yet Read";
+            }
+            else
+            {
+                SiteLonglbl.Text = profileProperties.SiteLongitude.ToString();
+            }
+
+        }
     }
+
 }

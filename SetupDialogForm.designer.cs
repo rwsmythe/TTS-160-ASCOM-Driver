@@ -35,6 +35,14 @@ namespace ASCOM.TTS160
             this.label2 = new System.Windows.Forms.Label();
             this.chkTrace = new System.Windows.Forms.CheckBox();
             this.comboBoxComPort = new System.Windows.Forms.ComboBox();
+            this.label3 = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
+            this.SiteAltTxt = new System.Windows.Forms.TextBox();
+            this.SlewSetTimeTxt = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.label6 = new System.Windows.Forms.Label();
+            this.SiteLatlbl = new System.Windows.Forms.Label();
+            this.SiteLonglbl = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).BeginInit();
             this.SuspendLayout();
             // 
@@ -42,7 +50,7 @@ namespace ASCOM.TTS160
             // 
             this.cmdOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.cmdOK.Location = new System.Drawing.Point(749, 267);
+            this.cmdOK.Location = new System.Drawing.Point(1148, 521);
             this.cmdOK.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.cmdOK.Name = "cmdOK";
             this.cmdOK.Size = new System.Drawing.Size(157, 57);
@@ -55,7 +63,7 @@ namespace ASCOM.TTS160
             // 
             this.cmdCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.cmdCancel.Location = new System.Drawing.Point(749, 339);
+            this.cmdCancel.Location = new System.Drawing.Point(1148, 593);
             this.cmdCancel.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.cmdCancel.Name = "cmdCancel";
             this.cmdCancel.Size = new System.Drawing.Size(157, 60);
@@ -78,7 +86,7 @@ namespace ASCOM.TTS160
             this.picASCOM.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.picASCOM.Cursor = System.Windows.Forms.Cursors.Hand;
             this.picASCOM.Image = global::ASCOM.TTS160.Properties.Resources.ASCOM;
-            this.picASCOM.Location = new System.Drawing.Point(779, 21);
+            this.picASCOM.Location = new System.Drawing.Point(1178, 21);
             this.picASCOM.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.picASCOM.Name = "picASCOM";
             this.picASCOM.Size = new System.Drawing.Size(48, 56);
@@ -118,11 +126,106 @@ namespace ASCOM.TTS160
             this.comboBoxComPort.Size = new System.Drawing.Size(233, 39);
             this.comboBoxComPort.TabIndex = 7;
             // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(526, 207);
+            this.label3.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(216, 32);
+            this.label3.TabIndex = 8;
+            this.label3.Text = "Site Altitude (m)";
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(526, 283);
+            this.label4.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(319, 32);
+            this.label4.TabIndex = 9;
+            this.label4.Text = "Slew Settling Time (sec)";
+            this.label4.Click += new System.EventHandler(this.label4_Click);
+            // 
+            // SiteAltTxt
+            // 
+            this.SiteAltTxt.CharacterCasing = System.Windows.Forms.CharacterCasing.Lower;
+            this.SiteAltTxt.Location = new System.Drawing.Point(873, 200);
+            this.SiteAltTxt.Name = "SiteAltTxt";
+            this.SiteAltTxt.Size = new System.Drawing.Size(268, 38);
+            this.SiteAltTxt.TabIndex = 10;
+            this.SiteAltTxt.Text = "0";
+            this.SiteAltTxt.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.SiteAltTxt.TextChanged += new System.EventHandler(this.SiteAltTxt_TextChanged);
+            // 
+            // SlewSetTimeTxt
+            // 
+            this.SlewSetTimeTxt.CharacterCasing = System.Windows.Forms.CharacterCasing.Lower;
+            this.SlewSetTimeTxt.Location = new System.Drawing.Point(873, 277);
+            this.SlewSetTimeTxt.Name = "SlewSetTimeTxt";
+            this.SlewSetTimeTxt.Size = new System.Drawing.Size(268, 38);
+            this.SlewSetTimeTxt.TabIndex = 11;
+            this.SlewSetTimeTxt.Text = "2";
+            this.SlewSetTimeTxt.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.SlewSetTimeTxt.TextChanged += new System.EventHandler(this.SlewSetTimeTxt_TextChanged);
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(35, 416);
+            this.label5.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(304, 32);
+            this.label5.TabIndex = 12;
+            this.label5.Text = "Recorded Site Latitude";
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(35, 469);
+            this.label6.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(328, 32);
+            this.label6.TabIndex = 13;
+            this.label6.Text = "Recorded Site Longitude";
+            // 
+            // SiteLatlbl
+            // 
+            this.SiteLatlbl.AutoSize = true;
+            this.SiteLatlbl.BackColor = System.Drawing.Color.White;
+            this.SiteLatlbl.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.SiteLatlbl.Location = new System.Drawing.Point(414, 416);
+            this.SiteLatlbl.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.SiteLatlbl.MinimumSize = new System.Drawing.Size(304, 32);
+            this.SiteLatlbl.Name = "SiteLatlbl";
+            this.SiteLatlbl.Size = new System.Drawing.Size(304, 34);
+            this.SiteLatlbl.TabIndex = 14;
+            // 
+            // SiteLonglbl
+            // 
+            this.SiteLonglbl.AutoSize = true;
+            this.SiteLonglbl.BackColor = System.Drawing.Color.White;
+            this.SiteLonglbl.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.SiteLonglbl.Location = new System.Drawing.Point(414, 469);
+            this.SiteLonglbl.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.SiteLonglbl.MinimumSize = new System.Drawing.Size(304, 32);
+            this.SiteLonglbl.Name = "SiteLonglbl";
+            this.SiteLonglbl.Size = new System.Drawing.Size(304, 34);
+            this.SiteLonglbl.TabIndex = 15;
+            // 
             // SetupDialogForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(16F, 31F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(933, 417);
+            this.ClientSize = new System.Drawing.Size(1332, 671);
+            this.Controls.Add(this.SiteLonglbl);
+            this.Controls.Add(this.SiteLatlbl);
+            this.Controls.Add(this.label6);
+            this.Controls.Add(this.label5);
+            this.Controls.Add(this.SlewSetTimeTxt);
+            this.Controls.Add(this.SiteAltTxt);
+            this.Controls.Add(this.label4);
+            this.Controls.Add(this.label3);
             this.Controls.Add(this.comboBoxComPort);
             this.Controls.Add(this.chkTrace);
             this.Controls.Add(this.label2);
@@ -154,5 +257,13 @@ namespace ASCOM.TTS160
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.CheckBox chkTrace;
         private System.Windows.Forms.ComboBox comboBoxComPort;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.TextBox SiteAltTxt;
+        private System.Windows.Forms.TextBox SlewSetTimeTxt;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.Label SiteLatlbl;
+        private System.Windows.Forms.Label SiteLonglbl;
     }
 }
