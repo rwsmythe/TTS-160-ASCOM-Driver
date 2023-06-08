@@ -43,14 +43,18 @@ namespace ASCOM.TTS160
             this.label6 = new System.Windows.Forms.Label();
             this.SiteLatlbl = new System.Windows.Forms.Label();
             this.SiteLonglbl = new System.Windows.Forms.Label();
+            this.compatBox = new System.Windows.Forms.GroupBox();
+            this.noneBtn = new System.Windows.Forms.RadioButton();
+            this.mpmBtn = new System.Windows.Forms.RadioButton();
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).BeginInit();
+            this.compatBox.SuspendLayout();
             this.SuspendLayout();
             // 
             // cmdOK
             // 
             this.cmdOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.cmdOK.Location = new System.Drawing.Point(1148, 521);
+            this.cmdOK.Location = new System.Drawing.Point(1103, 715);
             this.cmdOK.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.cmdOK.Name = "cmdOK";
             this.cmdOK.Size = new System.Drawing.Size(157, 57);
@@ -63,7 +67,7 @@ namespace ASCOM.TTS160
             // 
             this.cmdCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.cmdCancel.Location = new System.Drawing.Point(1148, 593);
+            this.cmdCancel.Location = new System.Drawing.Point(1103, 787);
             this.cmdCancel.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.cmdCancel.Name = "cmdCancel";
             this.cmdCancel.Size = new System.Drawing.Size(157, 60);
@@ -86,7 +90,7 @@ namespace ASCOM.TTS160
             this.picASCOM.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.picASCOM.Cursor = System.Windows.Forms.Cursors.Hand;
             this.picASCOM.Image = global::ASCOM.TTS160.Properties.Resources.ASCOM;
-            this.picASCOM.Location = new System.Drawing.Point(1178, 21);
+            this.picASCOM.Location = new System.Drawing.Point(1133, 21);
             this.picASCOM.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.picASCOM.Name = "picASCOM";
             this.picASCOM.Size = new System.Drawing.Size(48, 56);
@@ -213,11 +217,45 @@ namespace ASCOM.TTS160
             this.SiteLonglbl.Size = new System.Drawing.Size(304, 34);
             this.SiteLonglbl.TabIndex = 15;
             // 
+            // compatBox
+            // 
+            this.compatBox.Controls.Add(this.mpmBtn);
+            this.compatBox.Controls.Add(this.noneBtn);
+            this.compatBox.Location = new System.Drawing.Point(41, 553);
+            this.compatBox.Name = "compatBox";
+            this.compatBox.Size = new System.Drawing.Size(419, 200);
+            this.compatBox.TabIndex = 16;
+            this.compatBox.TabStop = false;
+            this.compatBox.Text = "App Compatibility Mode";
+            // 
+            // noneBtn
+            // 
+            this.noneBtn.AutoSize = true;
+            this.noneBtn.Checked = true;
+            this.noneBtn.Location = new System.Drawing.Point(37, 67);
+            this.noneBtn.Name = "noneBtn";
+            this.noneBtn.Size = new System.Drawing.Size(119, 36);
+            this.noneBtn.TabIndex = 0;
+            this.noneBtn.TabStop = true;
+            this.noneBtn.Text = "None";
+            this.noneBtn.UseVisualStyleBackColor = true;
+            // 
+            // mpmBtn
+            // 
+            this.mpmBtn.AutoSize = true;
+            this.mpmBtn.Location = new System.Drawing.Point(37, 123);
+            this.mpmBtn.Name = "mpmBtn";
+            this.mpmBtn.Size = new System.Drawing.Size(345, 36);
+            this.mpmBtn.TabIndex = 1;
+            this.mpmBtn.Text = "Moon Panorama Maker";
+            this.mpmBtn.UseVisualStyleBackColor = true;
+            // 
             // SetupDialogForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(16F, 31F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1332, 671);
+            this.ClientSize = new System.Drawing.Size(1287, 865);
+            this.Controls.Add(this.compatBox);
             this.Controls.Add(this.SiteLonglbl);
             this.Controls.Add(this.SiteLatlbl);
             this.Controls.Add(this.label6);
@@ -243,6 +281,8 @@ namespace ASCOM.TTS160
             this.Text = "TTS160 Setup";
             this.Load += new System.EventHandler(this.SetupDialogForm_Load);
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).EndInit();
+            this.compatBox.ResumeLayout(false);
+            this.compatBox.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -265,5 +305,8 @@ namespace ASCOM.TTS160
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Label SiteLatlbl;
         private System.Windows.Forms.Label SiteLonglbl;
+        private System.Windows.Forms.GroupBox compatBox;
+        private System.Windows.Forms.RadioButton mpmBtn;
+        private System.Windows.Forms.RadioButton noneBtn;
     }
 }

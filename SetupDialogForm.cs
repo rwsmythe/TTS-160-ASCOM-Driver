@@ -106,6 +106,18 @@ namespace ASCOM.TTS160
         }
         public ProfileProperties GetProfile( ProfileProperties CurProfile )
         {
+
+            int CompatMode = 0;
+            bool CanSetTrackingOverride = false;
+            bool CanSetGuideRatesOverride = false;
+            
+            if (mpmBtn.Checked)
+            {
+                CompatMode = 1;
+                CanSetTrackingOverride = true;
+                CanSetGuideRatesOverride = true;
+            }
+            
             var profileProperties = new ProfileProperties
             {
 
@@ -114,7 +126,10 @@ namespace ASCOM.TTS160
                 SiteElevation = Double.Parse(SiteAltTxt.Text),
                 SlewSettleTime = Int16.Parse(SlewSetTimeTxt.Text),
                 SiteLatitude = CurProfile.SiteLatitude,
-                SiteLongitude = CurProfile.SiteLongitude
+                SiteLongitude = CurProfile.SiteLongitude,
+                CompatMode = CompatMode,
+                CanSetTrackingOverride = CanSetTrackingOverride,
+                CanSetGuideRatesOverride = CanSetGuideRatesOverride
 
             };
 
@@ -144,6 +159,18 @@ namespace ASCOM.TTS160
             else
             {
                 SiteLonglbl.Text = profileProperties.SiteLongitude.ToString();
+            }
+
+            switch (profileProperties.CompatMode)
+            {
+                case 0:
+                    noneBtn.Checked = true;
+                    mpmBtn.Checked = false;
+                    break;
+                case 1:
+                    noneBtn.Checked = false;
+                    mpmBtn.Checked = true;
+                    break;
             }
 
         }

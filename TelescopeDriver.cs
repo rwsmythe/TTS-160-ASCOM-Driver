@@ -108,9 +108,12 @@ namespace ASCOM.TTS160
         internal static string SiteLatitudeDefault = "100";
         internal static string SiteLongitudeName = "Site Longitude";
         internal static string SiteLongitudeDefault = "200";
-
-        //internal static double SiteElevationProfile;
-        //internal static short SlewSettleTimeProfile;
+        internal static string CompatModeName = "Compatibility Mode";
+        internal static string CompatModeDefault = "0";
+        internal static string CanSetTrackingOverrideName = "CanSetTracking Override";
+        internal static string CanSetTrackingOverrideDefault = "false";
+        internal static string CanSetGuideRatesOverrideName = "CanSetGuideRates Override";
+        internal static string CanSetGuideRatesOverrideDefault = "false";
 
         /// <summary>
         /// Private variable to hold the connected state
@@ -852,10 +855,21 @@ namespace ASCOM.TTS160
                 try
                 {
                     CheckConnected("CanSetGuideRates");
-                    
-                    //TTS-160 does not support SetGuideRates, return false
-                    tl.LogMessage("CanSetGuideRates", "Get - " + false.ToString());
-                    return false;
+
+                    //Check for override for App Compatibility Mode
+                    if (profileProperties.CanSetGuideRatesOverride)
+                    {
+                        tl.LogMessage("CanSetGuideRates Override", "Showing CanSetGuideRates as True");
+                        tl.LogMessage("CanSetGuideRates", "Get - " + true.ToString());
+                        return true;
+                    }
+                    else
+                    {
+                        //TTS-160 does not support SetGuideRates, return false
+                        tl.LogMessage("CanSetGuideRates", "Get - " + false.ToString());
+                        return false;
+                    }
+
                 }
                 catch (Exception ex)
                 {
@@ -944,11 +958,23 @@ namespace ASCOM.TTS160
             {
                 try
                 {
+                                  
                     CheckConnected("CanSetTracking");
 
-                    //Set Tracking not implemented in TTS-160, return false
-                    tl.LogMessage("CanSetTracking", "Get - " + false.ToString());
-                    return false;
+                    //Check for override for App Compatibility Mode
+                    if (profileProperties.CanSetTrackingOverride)
+                    {
+                        tl.LogMessage("CanSetTracking Override", "Showing CanSetTracking as True");
+                        tl.LogMessage("CanSetTracking", "Get - " + true.ToString());
+                        return true;
+                    }
+                    else
+                    {
+                        //Set Tracking not implemented in TTS-160, return false
+                        tl.LogMessage("CanSetTracking", "Get - " + false.ToString());
+                        return false;
+                    }
+
                 }
                 catch (Exception ex)
                 {
@@ -1247,13 +1273,35 @@ namespace ASCOM.TTS160
         {
             get
             {
-                tl.LogMessage("GuideRateDeclination Get", "Not implemented");
-                throw new PropertyNotImplementedException("GuideRateDeclination", false);
+                //Check for CanSetGuideRates Override...
+                if (profileProperties.CanSetGuideRatesOverride)
+                {
+                    double DefaultGuideRate = 0.00277777777777778; // deg/sec
+                    tl.LogMessage("CanSetGuideRates Override", "Get GuideRateDeclination command received, returning default rate");
+                    tl.LogMessage("GuideRateDeclination", "Get - " + DefaultGuideRate.ToString());
+                    return DefaultGuideRate;
+                }
+                else
+                {
+                    tl.LogMessage("GuideRateDeclination Get", "Not implemented");
+                    throw new PropertyNotImplementedException("GuideRateDeclination", false);
+                }
+
             }
             set
             {
-                tl.LogMessage("GuideRateDeclination Set", "Not implemented");
-                throw new PropertyNotImplementedException("GuideRateDeclination", true);
+                //Check for CanSetGuideRates Override...
+                if (profileProperties.CanSetGuideRatesOverride)
+                {
+                    tl.LogMessage("CanSetGuideRates Override", "Set GuideRateDeclination " + value.ToString() + " command received");
+                    tl.LogMessage("GuideRateDeclination", "Set - " + value.ToString() + " assigned to nothing...");
+                }
+                else
+                {
+                    tl.LogMessage("GuideRateDeclination Set", "Not implemented");
+                    throw new PropertyNotImplementedException("GuideRateDeclination", true);
+                }
+
             }
         }
 
@@ -1264,13 +1312,35 @@ namespace ASCOM.TTS160
         {
             get
             {
-                tl.LogMessage("GuideRateRightAscension Get", "Not implemented");
-                throw new PropertyNotImplementedException("GuideRateRightAscension", false);
+
+                if (profileProperties.CanSetGuideRatesOverride)
+                {
+                    double DefaultGuideRate = 0.00277777777777778; // deg/sec
+                    tl.LogMessage("CanSetGuideRates Override", "Get GuideRateRightAscension command received, returning default rate");
+                    tl.LogMessage("GuideRateRightAscension", "Get - " + DefaultGuideRate.ToString());
+                    return DefaultGuideRate;
+                }
+                else
+                {
+                    tl.LogMessage("GuideRateRightAscension Get", "Not implemented");
+                    throw new PropertyNotImplementedException("GuideRateRightAscension", false);
+                }
+
+
             }
             set
             {
-                tl.LogMessage("GuideRateRightAscension Set", "Not implemented");
-                throw new PropertyNotImplementedException("GuideRateRightAscension", true);
+                //Check for CanSetGuideRates Override...
+                if (profileProperties.CanSetGuideRatesOverride)
+                {
+                    tl.LogMessage("CanSetGuideRates Override", "Set GuideRateRightAscension " + value.ToString() + " command received");
+                    tl.LogMessage("GuideRateRightAscension", "Set - " + value.ToString() + " assigned to nothing...");
+                }
+                else
+                {
+                    tl.LogMessage("GuideRateRightAscension Set", "Not implemented");
+                    throw new PropertyNotImplementedException("GuideRateRightAscension", true);
+                }
             }
         }
 
@@ -2668,8 +2738,19 @@ namespace ASCOM.TTS160
             }
             set
             {
-                tl.LogMessage("Tracking Set", "Not implemented");
-                throw new PropertyNotImplementedException("Tracking", true);
+
+                if (profileProperties.CanSetTrackingOverride)
+                {
+                    tl.LogMessage("CanSetTracking Override", "Tracking " + value.ToString() + " command received");
+                    tl.LogMessage("Tracking", "Set - " + value.ToString() + " assigned to nothing...");
+                }
+                else
+                {
+                    tl.LogMessage("Tracking Set", "Not implemented");
+                    throw new PropertyNotImplementedException("Tracking", true);
+                }
+
+
             }
         }
 
@@ -2917,6 +2998,9 @@ namespace ASCOM.TTS160
                 profileProperties.SlewSettleTime = Int16.Parse(driverProfile.GetValue(driverID, SlewSettleTimeName, string.Empty, SlewSettleTimeDefault));
                 profileProperties.SiteLatitude = Double.Parse(driverProfile.GetValue(driverID, SiteLatitudeName, string.Empty, SiteLatitudeDefault));
                 profileProperties.SiteLongitude = Double.Parse(driverProfile.GetValue(driverID, SiteLongitudeName, string.Empty, SiteLongitudeDefault));
+                profileProperties.CompatMode = Int32.Parse(driverProfile.GetValue(driverID, CompatModeName, string.Empty, CompatModeDefault));
+                profileProperties.CanSetTrackingOverride = Convert.ToBoolean(driverProfile.GetValue(driverID, CanSetTrackingOverrideName, string.Empty, CanSetTrackingOverrideDefault));
+                profileProperties.CanSetGuideRatesOverride = Convert.ToBoolean(driverProfile.GetValue(driverID, CanSetGuideRatesOverrideName, string.Empty, CanSetGuideRatesOverrideDefault));
             }
             return profileProperties;
         }
@@ -2937,6 +3021,9 @@ namespace ASCOM.TTS160
                 driverProfile.WriteValue(driverID, SlewSettleTimeName, profileProperties.SlewSettleTime.ToString());
                 driverProfile.WriteValue(driverID, SiteLatitudeName, profileProperties.SiteLatitude.ToString());
                 driverProfile.WriteValue(driverID, SiteLongitudeName, profileProperties.SiteLongitude.ToString());
+                driverProfile.WriteValue(driverID, CompatModeName, profileProperties.CompatMode.ToString());
+                driverProfile.WriteValue(driverID, CanSetTrackingOverrideName, profileProperties.CanSetTrackingOverride.ToString());
+                driverProfile.WriteValue(driverID, CanSetGuideRatesOverrideName, profileProperties.CanSetGuideRatesOverride.ToString());
 
             }
         }
