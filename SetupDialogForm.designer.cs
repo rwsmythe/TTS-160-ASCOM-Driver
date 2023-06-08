@@ -46,6 +46,7 @@ namespace ASCOM.TTS160
             this.compatBox = new System.Windows.Forms.GroupBox();
             this.noneBtn = new System.Windows.Forms.RadioButton();
             this.mpmBtn = new System.Windows.Forms.RadioButton();
+            this.TimeSyncChk = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).BeginInit();
             this.compatBox.SuspendLayout();
             this.SuspendLayout();
@@ -250,11 +251,24 @@ namespace ASCOM.TTS160
             this.mpmBtn.Text = "Moon Panorama Maker";
             this.mpmBtn.UseVisualStyleBackColor = true;
             // 
+            // TimeSyncChk
+            // 
+            this.TimeSyncChk.AutoSize = true;
+            this.TimeSyncChk.Checked = true;
+            this.TimeSyncChk.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.TimeSyncChk.Location = new System.Drawing.Point(596, 553);
+            this.TimeSyncChk.Name = "TimeSyncChk";
+            this.TimeSyncChk.Size = new System.Drawing.Size(585, 36);
+            this.TimeSyncChk.TabIndex = 17;
+            this.TimeSyncChk.Text = "Sync Mount Time to Computer on Connect";
+            this.TimeSyncChk.UseVisualStyleBackColor = true;
+            // 
             // SetupDialogForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(16F, 31F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1287, 865);
+            this.Controls.Add(this.TimeSyncChk);
             this.Controls.Add(this.compatBox);
             this.Controls.Add(this.SiteLonglbl);
             this.Controls.Add(this.SiteLatlbl);
@@ -308,5 +322,6 @@ namespace ASCOM.TTS160
         private System.Windows.Forms.GroupBox compatBox;
         private System.Windows.Forms.RadioButton mpmBtn;
         private System.Windows.Forms.RadioButton noneBtn;
+        private System.Windows.Forms.CheckBox TimeSyncChk;
     }
 }

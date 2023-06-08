@@ -129,7 +129,8 @@ namespace ASCOM.TTS160
                 SiteLongitude = CurProfile.SiteLongitude,
                 CompatMode = CompatMode,
                 CanSetTrackingOverride = CanSetTrackingOverride,
-                CanSetGuideRatesOverride = CanSetGuideRatesOverride
+                CanSetGuideRatesOverride = CanSetGuideRatesOverride,
+                SyncTimeOnConnect = TimeSyncChk.Checked
 
             };
 
@@ -172,6 +173,8 @@ namespace ASCOM.TTS160
                     mpmBtn.Checked = true;
                     break;
             }
+
+            TimeSyncChk.Checked = profileProperties.SyncTimeOnConnect;
 
         }
     }

@@ -17,6 +17,7 @@ namespace ASCOM.TTS160
         public int CompatMode { get; set; }  //Attempts to improve specific app compatibility by "enabling" benign, unimplemented ASCOM functions
         public bool CanSetTrackingOverride { get; set; }
         public bool CanSetGuideRatesOverride { get; set; }
+        public bool SyncTimeOnConnect { get; set; }
            
     }
 }

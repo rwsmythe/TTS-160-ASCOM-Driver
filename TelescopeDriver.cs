@@ -22,6 +22,7 @@
 //
 // Date			Who	Vers	Description
 // -----------	---	-----	-------------------------------------------------------
+// 08JUN2023    RWS 0.9.5   Added in App Compatability feature for MPM and time sync feature
 // 03JUN2023    RWS 0.9.4   Added in capability to add site elevation and adjust Slew Settling Time in setup dialog
 // 29MAY2023    RWS 0.9.3   Corrected issues in Sync, UTCDate, SiderealTime, MoveAxis, and AxisRates
 // 23MAY2023    RWS 0.9.1   Added in the native PulseGuide commands
@@ -89,8 +90,8 @@ namespace ASCOM.TTS160
         /// This driver is intended to specifically support TTS-160 Panther mount, based on the LX200 protocol.
         /// Driver description that displays in the ASCOM Chooser.
         /// </summary>
-        private static string driverDescription = "ASCOM Telescope Driver for TTS-160";
-        private static string driverVersion = "0.9.4";
+        private static string driverVersion = "0.9.5";
+        private static string driverDescription = "TTS-160 v." + driverVersion;
         private Serial serialPort;
 
         internal static string comPortProfileName = "COM Port"; // Constants used for Profile persistence
@@ -114,6 +115,8 @@ namespace ASCOM.TTS160
         internal static string CanSetTrackingOverrideDefault = "false";
         internal static string CanSetGuideRatesOverrideName = "CanSetGuideRates Override";
         internal static string CanSetGuideRatesOverrideDefault = "false";
+        internal static string SyncTimeOnConnectName = "Sync Time on Connect";
+        internal static string SyncTimeOnConnectDefault = "true";
 
         /// <summary>
         /// Private variable to hold the connected state
@@ -414,10 +417,25 @@ namespace ASCOM.TTS160
                             Connected = true
                         };
                         connectedState = true;
+                        tl.LogMessage("Connected", "Success");
 
+                        tl.LogMessage("Connected", "Updating Site Lat and Long");
                         profileProperties.SiteLatitude = SiteLatitude;
                         profileProperties.SiteLongitude = SiteLongitude;
+                        tl.LogMessage("Connected", "Lat: " + SiteLatitude.ToString());
+                        tl.LogMessage("Connected", "Long: " + SiteLongitude.ToString());
                         WriteProfile(profileProperties);
+
+                        tl.LogMessage("Connected", "Sync Time on Connect - " + profileProperties.SyncTimeOnConnect.ToString());
+                        if (profileProperties.SyncTimeOnConnect)
+                        {
+                            tl.LogMessage("Connected", "Pre Sync Mount UTC: " + UTCDate.ToString("MM/dd/yy HH:mm:ss"));
+                            tl.LogMessage("Connected", "Pre Sync Computer UTC: " + DateTime.UtcNow.ToString("MM/dd/yy HH:mm:ss"));
+                            UTCDate = DateTime.UtcNow;
+                            tl.LogMessage("Connected", "Post Sync Mount UTC: " + UTCDate.ToString("MM/dd/yy HH:mm:ss"));
+                            tl.LogMessage("Connected", "Post Sync Computer UTC: " + DateTime.UtcNow.ToString("MM/dd/yy HH:mm:ss"));
+
+                        }
 
                     }
                     catch (Exception ex)
@@ -2847,12 +2865,14 @@ namespace ASCOM.TTS160
                     DateTime localdatetime = value.AddHours((-1) * utcoffsetnum);
 
                     string newdate = localdatetime.ToString("MM/dd/yy");
-                    bool res = CommandBool(":SC" + newdate + "#", true);
-                    if (!res) { throw new ASCOM.InvalidValueException("UTC Date Set Invalid Date: " + newdate); }
+                    string res = CommandString(":SC" + newdate + "#", true);
+                    bool resBool = char.GetNumericValue(res[0]) == 1;
+                    if (!resBool) { throw new ASCOM.InvalidValueException("UTC Date Set Invalid Date: " + newdate); }
 
                     string newtime = localdatetime.ToString("HH:mm:ss");
-                    res = CommandBool(":SL" + newtime + "#", true);
-                    if (!res ) { throw new ASCOM.InvalidValueException("UTC Date Set Invalid Time: "+ newtime); }
+                    resBool = CommandBool(":SL" + newtime + "#", true);
+                    //resBool = char.GetNumericValue(res[0]) == 1;
+                    if (!resBool) { throw new ASCOM.InvalidValueException("UTC Date Set Invalid Time: "+ newtime); }
                 }
                 catch (Exception ex)
                 {
@@ -3001,6 +3021,7 @@ namespace ASCOM.TTS160
                 profileProperties.CompatMode = Int32.Parse(driverProfile.GetValue(driverID, CompatModeName, string.Empty, CompatModeDefault));
                 profileProperties.CanSetTrackingOverride = Convert.ToBoolean(driverProfile.GetValue(driverID, CanSetTrackingOverrideName, string.Empty, CanSetTrackingOverrideDefault));
                 profileProperties.CanSetGuideRatesOverride = Convert.ToBoolean(driverProfile.GetValue(driverID, CanSetGuideRatesOverrideName, string.Empty, CanSetGuideRatesOverrideDefault));
+                profileProperties.SyncTimeOnConnect = Convert.ToBoolean(driverProfile.GetValue(driverID, SyncTimeOnConnectName, string.Empty, SyncTimeOnConnectDefault));
             }
             return profileProperties;
         }
@@ -3024,7 +3045,7 @@ namespace ASCOM.TTS160
                 driverProfile.WriteValue(driverID, CompatModeName, profileProperties.CompatMode.ToString());
                 driverProfile.WriteValue(driverID, CanSetTrackingOverrideName, profileProperties.CanSetTrackingOverride.ToString());
                 driverProfile.WriteValue(driverID, CanSetGuideRatesOverrideName, profileProperties.CanSetGuideRatesOverride.ToString());
-
+                driverProfile.WriteValue(driverID, SyncTimeOnConnectName, profileProperties.SyncTimeOnConnect.ToString());
             }
         }
 
