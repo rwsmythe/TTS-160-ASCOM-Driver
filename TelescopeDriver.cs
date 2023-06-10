@@ -1798,8 +1798,18 @@ namespace ASCOM.TTS160
             }
             set
             {
-                profileProperties.SiteElevation = value;
-                WriteProfile(profileProperties);
+                try
+                {
+                    if ((value < -300) || (value > 10000)) { throw new ASCOM.InvalidValueException($"Invalid Site Elevation ${value}"); }
+                    profileProperties.SiteElevation = value;
+                    WriteProfile(profileProperties);
+                }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("Site Altitude Set", $"Error: {ex.Message}");
+                    throw;
+                }
+
                 //tl.LogMessage("SiteElevation Set", "Not implemented");
                 //throw new PropertyNotImplementedException("SiteElevation", true);
             }
