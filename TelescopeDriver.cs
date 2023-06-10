@@ -22,6 +22,7 @@
 //
 // Date			Who	Vers	Description
 // -----------	---	-----	-------------------------------------------------------
+// 09JUN2023    RWS 1.0.0   First release version
 // 08JUN2023    RWS 0.9.5   Added in App Compatability feature for MPM and time sync feature
 // 03JUN2023    RWS 0.9.4   Added in capability to add site elevation and adjust Slew Settling Time in setup dialog
 // 29MAY2023    RWS 0.9.3   Corrected issues in Sync, UTCDate, SiderealTime, MoveAxis, and AxisRates
@@ -90,7 +91,7 @@ namespace ASCOM.TTS160
         /// This driver is intended to specifically support TTS-160 Panther mount, based on the LX200 protocol.
         /// Driver description that displays in the ASCOM Chooser.
         /// </summary>
-        private static string driverVersion = "0.9.5";
+        private static string driverVersion = "1.0.0";
         private static string driverDescription = "TTS-160 v." + driverVersion;
         private Serial serialPort;
 
