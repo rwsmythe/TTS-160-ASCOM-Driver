@@ -419,7 +419,7 @@ namespace ASCOM.TTS160
                         };
                         connectedState = true;
                         tl.LogMessage("Connected", "Success");
-
+                        tl.LogMessage("Connected", "Connected with " + driverDescription);
                         tl.LogMessage("Connected", "Updating Site Lat and Long");
                         profileProperties.SiteLatitude = SiteLatitude;
                         profileProperties.SiteLongitude = SiteLongitude;
@@ -1556,7 +1556,7 @@ namespace ASCOM.TTS160
 
                 if (MiscResources.IsSlewingToTarget) { throw new InvalidOperationException("Unable to PulseGuide while slewing to target."); }
                 if (Duration > 9999) { throw new InvalidValueException("Duration greater than 9999 msec"); }
-                if (Duration < 0) { throw new InvalidValueException("Duration less than 0"); }
+                if (Duration < 0) { throw new InvalidValueException("Duration less than 0 msec"); }
 
                 MiscResources.IsGuiding = true;
                 IsPulseGuiding = true;
