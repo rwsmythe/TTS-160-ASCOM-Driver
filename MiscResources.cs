@@ -18,11 +18,11 @@ namespace ASCOM.TTS160
             internal set => _movingSecondary = value;
         }
 
-        private static bool _isGuiding = false;
-        public static bool IsGuiding
+        private static bool _isPulseGuiding = false;
+        public static bool IsPulseGuiding
         {
-            get => _isGuiding;
-            internal set => _isGuiding = value;
+            get => _isPulseGuiding;
+            internal set => _isPulseGuiding = value;
         }
 
         public class HorizonCoordinates
@@ -41,13 +41,6 @@ namespace ASCOM.TTS160
         {
             get => _isSlewing;
             internal set => _isSlewing = value;
-        }
-
-        private static bool _isPulseGuideInProgress = false;
-        public static bool IsPulseGuideInProgress
-        {
-            get => _isPulseGuideInProgress;
-            internal set => _isPulseGuideInProgress = value;
         }
 
         private static bool _isSlewingToTarget = false;

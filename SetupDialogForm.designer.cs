@@ -30,7 +30,6 @@ namespace ASCOM.TTS160
         {
             this.cmdOK = new System.Windows.Forms.Button();
             this.cmdCancel = new System.Windows.Forms.Button();
-            this.label1 = new System.Windows.Forms.Label();
             this.picASCOM = new System.Windows.Forms.PictureBox();
             this.label2 = new System.Windows.Forms.Label();
             this.chkTrace = new System.Windows.Forms.CheckBox();
@@ -44,18 +43,22 @@ namespace ASCOM.TTS160
             this.SiteLatlbl = new System.Windows.Forms.Label();
             this.SiteLonglbl = new System.Windows.Forms.Label();
             this.compatBox = new System.Windows.Forms.GroupBox();
-            this.noneBtn = new System.Windows.Forms.RadioButton();
             this.mpmBtn = new System.Windows.Forms.RadioButton();
+            this.noneBtn = new System.Windows.Forms.RadioButton();
             this.TimeSyncChk = new System.Windows.Forms.CheckBox();
+            this.groupGuideComp = new System.Windows.Forms.GroupBox();
+            this.radioButtonGuidingAlt = new System.Windows.Forms.RadioButton();
+            this.radioButtonGuidingNone = new System.Windows.Forms.RadioButton();
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).BeginInit();
             this.compatBox.SuspendLayout();
+            this.groupGuideComp.SuspendLayout();
             this.SuspendLayout();
             // 
             // cmdOK
             // 
             this.cmdOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.cmdOK.Location = new System.Drawing.Point(1103, 715);
+            this.cmdOK.Location = new System.Drawing.Point(1132, 702);
             this.cmdOK.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.cmdOK.Name = "cmdOK";
             this.cmdOK.Size = new System.Drawing.Size(157, 57);
@@ -68,7 +71,7 @@ namespace ASCOM.TTS160
             // 
             this.cmdCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.cmdCancel.Location = new System.Drawing.Point(1103, 787);
+            this.cmdCancel.Location = new System.Drawing.Point(1132, 774);
             this.cmdCancel.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.cmdCancel.Name = "cmdCancel";
             this.cmdCancel.Size = new System.Drawing.Size(157, 60);
@@ -77,21 +80,12 @@ namespace ASCOM.TTS160
             this.cmdCancel.UseVisualStyleBackColor = true;
             this.cmdCancel.Click += new System.EventHandler(this.cmdCancel_Click);
             // 
-            // label1
-            // 
-            this.label1.Location = new System.Drawing.Point(32, 21);
-            this.label1.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(328, 74);
-            this.label1.TabIndex = 2;
-            this.label1.Text = "Construct your driver\'s setup dialog here.";
-            // 
             // picASCOM
             // 
             this.picASCOM.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.picASCOM.Cursor = System.Windows.Forms.Cursors.Hand;
             this.picASCOM.Image = global::ASCOM.TTS160.Properties.Resources.ASCOM;
-            this.picASCOM.Location = new System.Drawing.Point(1133, 21);
+            this.picASCOM.Location = new System.Drawing.Point(1162, 21);
             this.picASCOM.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.picASCOM.Name = "picASCOM";
             this.picASCOM.Size = new System.Drawing.Size(48, 56);
@@ -229,6 +223,16 @@ namespace ASCOM.TTS160
             this.compatBox.TabStop = false;
             this.compatBox.Text = "App Compatibility Mode";
             // 
+            // mpmBtn
+            // 
+            this.mpmBtn.AutoSize = true;
+            this.mpmBtn.Location = new System.Drawing.Point(37, 123);
+            this.mpmBtn.Name = "mpmBtn";
+            this.mpmBtn.Size = new System.Drawing.Size(345, 36);
+            this.mpmBtn.TabIndex = 1;
+            this.mpmBtn.Text = "Moon Panorama Maker";
+            this.mpmBtn.UseVisualStyleBackColor = true;
+            // 
             // noneBtn
             // 
             this.noneBtn.AutoSize = true;
@@ -241,33 +245,58 @@ namespace ASCOM.TTS160
             this.noneBtn.Text = "None";
             this.noneBtn.UseVisualStyleBackColor = true;
             // 
-            // mpmBtn
-            // 
-            this.mpmBtn.AutoSize = true;
-            this.mpmBtn.Location = new System.Drawing.Point(37, 123);
-            this.mpmBtn.Name = "mpmBtn";
-            this.mpmBtn.Size = new System.Drawing.Size(345, 36);
-            this.mpmBtn.TabIndex = 1;
-            this.mpmBtn.Text = "Moon Panorama Maker";
-            this.mpmBtn.UseVisualStyleBackColor = true;
-            // 
             // TimeSyncChk
             // 
             this.TimeSyncChk.AutoSize = true;
             this.TimeSyncChk.Checked = true;
             this.TimeSyncChk.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.TimeSyncChk.Location = new System.Drawing.Point(596, 553);
+            this.TimeSyncChk.Location = new System.Drawing.Point(41, 341);
             this.TimeSyncChk.Name = "TimeSyncChk";
             this.TimeSyncChk.Size = new System.Drawing.Size(585, 36);
             this.TimeSyncChk.TabIndex = 17;
             this.TimeSyncChk.Text = "Sync Mount Time to Computer on Connect";
             this.TimeSyncChk.UseVisualStyleBackColor = true;
             // 
+            // groupGuideComp
+            // 
+            this.groupGuideComp.Controls.Add(this.radioButtonGuidingAlt);
+            this.groupGuideComp.Controls.Add(this.radioButtonGuidingNone);
+            this.groupGuideComp.Location = new System.Drawing.Point(542, 553);
+            this.groupGuideComp.Name = "groupGuideComp";
+            this.groupGuideComp.Size = new System.Drawing.Size(419, 200);
+            this.groupGuideComp.TabIndex = 18;
+            this.groupGuideComp.TabStop = false;
+            this.groupGuideComp.Text = "Guiding Compensation";
+            // 
+            // radioButtonGuidingAlt
+            // 
+            this.radioButtonGuidingAlt.AutoSize = true;
+            this.radioButtonGuidingAlt.Location = new System.Drawing.Point(37, 123);
+            this.radioButtonGuidingAlt.Name = "radioButtonGuidingAlt";
+            this.radioButtonGuidingAlt.Size = new System.Drawing.Size(339, 36);
+            this.radioButtonGuidingAlt.TabIndex = 1;
+            this.radioButtonGuidingAlt.Text = "Altitude Compensation";
+            this.radioButtonGuidingAlt.UseVisualStyleBackColor = true;
+            this.radioButtonGuidingAlt.CheckedChanged += new System.EventHandler(this.radioButtonGuidingEl_CheckedChanged);
+            // 
+            // radioButtonGuidingNone
+            // 
+            this.radioButtonGuidingNone.AutoSize = true;
+            this.radioButtonGuidingNone.Checked = true;
+            this.radioButtonGuidingNone.Location = new System.Drawing.Point(37, 67);
+            this.radioButtonGuidingNone.Name = "radioButtonGuidingNone";
+            this.radioButtonGuidingNone.Size = new System.Drawing.Size(119, 36);
+            this.radioButtonGuidingNone.TabIndex = 0;
+            this.radioButtonGuidingNone.TabStop = true;
+            this.radioButtonGuidingNone.Text = "None";
+            this.radioButtonGuidingNone.UseVisualStyleBackColor = true;
+            // 
             // SetupDialogForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(16F, 31F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1287, 865);
+            this.ClientSize = new System.Drawing.Size(1316, 852);
+            this.Controls.Add(this.groupGuideComp);
             this.Controls.Add(this.TimeSyncChk);
             this.Controls.Add(this.compatBox);
             this.Controls.Add(this.SiteLonglbl);
@@ -282,7 +311,6 @@ namespace ASCOM.TTS160
             this.Controls.Add(this.chkTrace);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.picASCOM);
-            this.Controls.Add(this.label1);
             this.Controls.Add(this.cmdCancel);
             this.Controls.Add(this.cmdOK);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
@@ -297,6 +325,8 @@ namespace ASCOM.TTS160
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).EndInit();
             this.compatBox.ResumeLayout(false);
             this.compatBox.PerformLayout();
+            this.groupGuideComp.ResumeLayout(false);
+            this.groupGuideComp.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -306,7 +336,6 @@ namespace ASCOM.TTS160
 
         private System.Windows.Forms.Button cmdOK;
         private System.Windows.Forms.Button cmdCancel;
-        private System.Windows.Forms.Label label1;
         private System.Windows.Forms.PictureBox picASCOM;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.CheckBox chkTrace;
@@ -323,5 +352,8 @@ namespace ASCOM.TTS160
         private System.Windows.Forms.RadioButton mpmBtn;
         private System.Windows.Forms.RadioButton noneBtn;
         private System.Windows.Forms.CheckBox TimeSyncChk;
+        private System.Windows.Forms.GroupBox groupGuideComp;
+        private System.Windows.Forms.RadioButton radioButtonGuidingAlt;
+        private System.Windows.Forms.RadioButton radioButtonGuidingNone;
     }
 }

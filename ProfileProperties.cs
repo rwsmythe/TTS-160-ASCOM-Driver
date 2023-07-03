@@ -18,6 +18,7 @@ namespace ASCOM.TTS160
         public bool CanSetTrackingOverride { get; set; }
         public bool CanSetGuideRatesOverride { get; set; }
         public bool SyncTimeOnConnect { get; set; }
+        public int GuideComp { get; set; }  //Improves guiding by compensating pulse length and/or pulse direction  
            
     }
 }

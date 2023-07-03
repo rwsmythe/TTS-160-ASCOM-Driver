@@ -22,6 +22,7 @@
 //
 // Date			Who	Vers	Description
 // -----------	---	-----	-------------------------------------------------------
+// 13JUN2023    RWS 1.0.1RC1 Troubleshooting missing pulseguide command and apparently stuck IsPulseGuiding value
 // 09JUN2023    RWS 1.0.0   First release version
 // 08JUN2023    RWS 0.9.5   Added in App Compatability feature for MPM and time sync feature
 // 03JUN2023    RWS 0.9.4   Added in capability to add site elevation and adjust Slew Settling Time in setup dialog
@@ -91,7 +92,7 @@ namespace ASCOM.TTS160
         /// This driver is intended to specifically support TTS-160 Panther mount, based on the LX200 protocol.
         /// Driver description that displays in the ASCOM Chooser.
         /// </summary>
-        private static string driverVersion = "1.0.0";
+        private static string driverVersion = "1.0.1RC3";
         private static string driverDescription = "TTS-160 v." + driverVersion;
         private Serial serialPort;
 
@@ -118,6 +119,8 @@ namespace ASCOM.TTS160
         internal static string CanSetGuideRatesOverrideDefault = "false";
         internal static string SyncTimeOnConnectName = "Sync Time on Connect";
         internal static string SyncTimeOnConnectDefault = "true";
+        internal static string GuideCompName = "Guiding Compensation";
+        internal static string GuideCompDefault = "0";
 
         /// <summary>
         /// Private variable to hold the connected state
@@ -266,7 +269,7 @@ namespace ASCOM.TTS160
                     serialPort.ClearBuffers();
                     serialPort.Transmit(command);
                     utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate.  May need to change to Thread.Sleep();
-                    tl.LogMessage("CommandBlind", "Completed");
+                    tl.LogMessage("CommandBlind", $"{command} Completed");
                 }
                 catch (Exception ex)
                 {
@@ -309,7 +312,7 @@ namespace ASCOM.TTS160
                     var result = serialPort.ReceiveCounted(1);
                     bool retBool = char.GetNumericValue(result[0]) == 1; // Parse the returned string and create a boolean True / False value
                     utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate.  Trying wait before reading return.  Lock should allow this to work                                                     //Does not take into account if retString[0] is not 1 or 0...            
-                    tl.LogMessage("CommandBool Completed", $"Result: {result} Parsed as: {retBool}");
+                    tl.LogMessage("CommandBool", $"{command} Completed: {result} Parsed as: {retBool}");
                     return retBool; // Return the boolean value to the client
                 }
                 catch (Exception ex)
@@ -354,7 +357,7 @@ namespace ASCOM.TTS160
                     serialPort.Transmit(command);
                     var result = serialPort.ReceiveTerminated("#");  //assumes that all return strings are # terminated...is this true?
                     utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate
-                    tl.LogMessage("CommandString", $"Completed: {result}");
+                    tl.LogMessage("CommandString", $"{command} Completed: {result}");
 
                     return result;
                 }
@@ -564,7 +567,7 @@ namespace ASCOM.TTS160
                 MiscResources.IsSlewingToTarget = false;
                 MiscResources.SlewSettleStart = DateTime.MinValue;
                 IsPulseGuiding = false;
-                MiscResources.IsGuiding = false;
+                MiscResources.IsPulseGuiding = false;
                 MiscResources.MovingPrimary = false;
                 MiscResources.MovingSecondary = false;
 
@@ -1168,7 +1171,7 @@ namespace ASCOM.TTS160
                 try
                 {
 
-                    tl.LogMessage("Declination Get", "Getting Declination");
+                    //tl.LogMessage("Declination Get", "Getting Declination");
                     CheckConnected("Declination Get");
 
                     var result = CommandString(":GD#", true);
@@ -1374,8 +1377,9 @@ namespace ASCOM.TTS160
                 try
                 {
                     CheckConnected("IsPulseGuiding");
-                    
-                    return MiscResources.IsPulseGuideInProgress;
+
+                    tl.LogMessage("IsPulseGuiding", "Get - " + MiscResources.IsPulseGuiding.ToString());
+                    return MiscResources.IsPulseGuiding;
                 }
                 catch (Exception ex)
                 {
@@ -1386,7 +1390,8 @@ namespace ASCOM.TTS160
 
             set
             {
-                MiscResources.IsPulseGuideInProgress = value;
+                tl.LogMessage("IsPulseGuding", "Set - " + value.ToString());
+                MiscResources.IsPulseGuiding = value;
             }
         }
 
@@ -1556,71 +1561,80 @@ namespace ASCOM.TTS160
 
                 if (MiscResources.IsSlewingToTarget) { throw new InvalidOperationException("Unable to PulseGuide while slewing to target."); }
                 if (Duration > 9999) { throw new InvalidValueException("Duration greater than 9999 msec"); }
-                if (Duration < 0) { throw new InvalidValueException("Duration less than 0 msec"); }
+                if (Duration < 0) { throw new InvalidValueException("Duration less than 0 msec"); }           
+                
+                if (MiscResources.MovingPrimary &&
+                    (Direction == GuideDirections.guideEast || Direction == GuideDirections.guideWest))
+                    throw new InvalidOperationException("Unable to PulseGuide while moving same axis.");
+                
+                if (MiscResources.MovingSecondary &&
+                    (Direction == GuideDirections.guideNorth || Direction == GuideDirections.guideSouth))
+                    throw new InvalidOperationException("Unable to PulseGuide while moving same axis.");
 
-                MiscResources.IsGuiding = true;
-                IsPulseGuiding = true;
-                try
+                //Check to see if GuideComp is enabled, then correct pulse length if required
+                int maxcomp = 1000; //set maximum allowable compensation time in msec (PHD2 is 1 sec)
+                int bufftime = 20; //set buffer time to decrement from max in msec to prevent tripping PHD2 limit
+                double maxalt = 89; //Sufficiently close to 90 to allow exceeding maxcomp while preventing divide by zero
+
+                if (profileProperties.GuideComp == 1)
                 {
-                    if (MiscResources.MovingPrimary &&
-                        (Direction == GuideDirections.guideEast || Direction == GuideDirections.guideWest))
-                        throw new InvalidOperationException("Unable to PulseGuide while moving same axis.");
-
-                    if (MiscResources.MovingSecondary &&
-                        (Direction == GuideDirections.guideNorth || Direction == GuideDirections.guideSouth))
-                        throw new InvalidOperationException("Unable to PulseGuide while moving same axis.");
-
-                    var RABefore = RightAscension;
-                    var DecBefore = Declination;
-
-                    tl.LogMessage("PulseGuide", "Guiding with Pulse Guide command");
-                    switch (Direction)
+                    tl.LogMessage("PulseGuideComp", "Applying Altitude Compensation");
+                    double alt = Altitude;
+                    
+                    if (alt > maxalt) { alt = maxalt; }; //Prevent receiving divide by zero by limiting altitude to <90 deg
+                    
+                    double altrad = alt * Math.PI / 180; //convert to radians
+                    int compDuration = (int) Math.Round(Duration / Math.Cos(altrad)); //calculate compensated duration
+                    tl.LogMessage("PulseGuideComp", "Altitude: " + alt.ToString() + " deg (" + altrad.ToString() + " rad)");
+                    tl.LogMessage("PulseGuideComp", "Compensated Time: " + compDuration.ToString("D4"));
+                    
+                    if (compDuration > (Duration + maxcomp)) //verify we do not exceed maximum time value
                     {
-                        case GuideDirections.guideEast:
-                            var guidecmde = ":Mge" + Duration.ToString("D4") + "#";
-                            tl.LogMessage("GuideEast", guidecmde);
-                            CommandBlind(guidecmde, true);
-                            Thread.Sleep(Duration);
-                            break;
-                        case GuideDirections.guideNorth:
-                            var guidecmdn = ":Mgn" + Duration.ToString("D4") + "#";
-                            tl.LogMessage("GuideNorth", guidecmdn);
-                            CommandBlind(guidecmdn, true);
-                            Thread.Sleep(Duration);
-                            break;
-                        case GuideDirections.guideSouth:
-                            var guidecmds = ":Mgs" + Duration.ToString("D4") + "#";
-                            tl.LogMessage("GuideSouth", guidecmds);
-                            CommandBlind(guidecmds, true);
-                            Thread.Sleep(Duration);
-                            break;
-                        case GuideDirections.guideWest:
-                            var guidecmdw = ":Mgw" + Duration.ToString("D4") + "#";
-                            tl.LogMessage("GuideWest", guidecmdw);
-                            CommandBlind(guidecmdw, true);
-                            Thread.Sleep(Duration);
-                            break;
+                        compDuration = Duration + maxcomp - bufftime; //clip compensated time to maximum time value (with some buffer)
+                        tl.LogMessage("PulseGuideComp", "Compensated Time exceeds maximum: " + (Duration + maxcomp).ToString("D4"));
+                        tl.LogMessage("PulseGuideComp", "Setting compensated time to: " + compDuration.ToString("D4"));
                     }
-
-                    tl.LogMessage("PulseGuide", "pulse guide complete");
-
-                    var RAAfter = RightAscension;
-                    var DecAfter = Declination;
-
-                    tl.LogMessage("PulseGuide",
-                        $"Complete Before RA: {utilities.HoursToHMS(RABefore)} Dec:{utilities.DegreesToDMS(DecBefore)}");
-                    tl.LogMessage("PulseGuide",
-                        $"Complete After RA: {utilities.HoursToHMS(RAAfter)} Dec:{utilities.DegreesToDMS(DecAfter)}");
+                    Duration = compDuration; //Compensated time is verified good, replace the ordered Duration
                 }
-                finally
+               
+                IsPulseGuiding = true;
+                tl.LogMessage("PulseGuide", "Guiding with Pulse Guide command");
+                switch (Direction)
                 {
-                    MiscResources.IsGuiding = false;
-                    IsPulseGuiding = false;
+                    case GuideDirections.guideEast:
+                        var guidecmde = ":Mge" + Duration.ToString("D4") + "#";
+                        tl.LogMessage("GuideEast", guidecmde);
+                        CommandBlind(guidecmde, true);
+                        Thread.Sleep(Duration);
+                        break;
+                    case GuideDirections.guideNorth:
+                        var guidecmdn = ":Mgn" + Duration.ToString("D4") + "#";
+                        tl.LogMessage("GuideNorth", guidecmdn);
+                        CommandBlind(guidecmdn, true);
+                        Thread.Sleep(Duration);
+                        break;
+                    case GuideDirections.guideSouth:
+                        var guidecmds = ":Mgs" + Duration.ToString("D4") + "#";
+                        tl.LogMessage("GuideSouth", guidecmds);
+                        CommandBlind(guidecmds, true);
+                        Thread.Sleep(Duration);
+                        break;
+                    case GuideDirections.guideWest:
+                        var guidecmdw = ":Mgw" + Duration.ToString("D4") + "#";
+                        tl.LogMessage("GuideWest", guidecmdw);
+                        CommandBlind(guidecmdw, true);
+                        Thread.Sleep(Duration);
+                        break;
                 }
+                IsPulseGuiding = false;
+
+                tl.LogMessage("PulseGuide", "pulse guide complete");                            
+                
             }
             catch (Exception ex)
             {
                 tl.LogMessage("PulseGuide", $"Error performing pulse guide: {ex.Message}");
+                IsPulseGuiding = false;
                 throw;
             }
         }
@@ -1644,7 +1658,7 @@ namespace ASCOM.TTS160
             {
                 try
                 {
-                    tl.LogMessage("Right Ascension Get", "Getting Right Ascension");
+                    //tl.LogMessage("Right Ascension Get", "Getting Right Ascension");
                     CheckConnected("Right Ascension Get");
 
                     var result = CommandString(":GR#", true);
@@ -3033,6 +3047,7 @@ namespace ASCOM.TTS160
                 profileProperties.CanSetTrackingOverride = Convert.ToBoolean(driverProfile.GetValue(driverID, CanSetTrackingOverrideName, string.Empty, CanSetTrackingOverrideDefault));
                 profileProperties.CanSetGuideRatesOverride = Convert.ToBoolean(driverProfile.GetValue(driverID, CanSetGuideRatesOverrideName, string.Empty, CanSetGuideRatesOverrideDefault));
                 profileProperties.SyncTimeOnConnect = Convert.ToBoolean(driverProfile.GetValue(driverID, SyncTimeOnConnectName, string.Empty, SyncTimeOnConnectDefault));
+                profileProperties.GuideComp = Int32.Parse(driverProfile.GetValue(driverID, GuideCompName, string.Empty, GuideCompDefault));
             }
             return profileProperties;
         }
@@ -3057,6 +3072,7 @@ namespace ASCOM.TTS160
                 driverProfile.WriteValue(driverID, CanSetTrackingOverrideName, profileProperties.CanSetTrackingOverride.ToString());
                 driverProfile.WriteValue(driverID, CanSetGuideRatesOverrideName, profileProperties.CanSetGuideRatesOverride.ToString());
                 driverProfile.WriteValue(driverID, SyncTimeOnConnectName, profileProperties.SyncTimeOnConnect.ToString());
+                driverProfile.WriteValue(driverID, GuideCompName, profileProperties.GuideComp.ToString());
             }
         }
 

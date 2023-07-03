@@ -108,6 +108,7 @@ namespace ASCOM.TTS160
         {
 
             int CompatMode = 0;
+            int GuideComp = 0;
             bool CanSetTrackingOverride = false;
             bool CanSetGuideRatesOverride = false;
             
@@ -117,7 +118,12 @@ namespace ASCOM.TTS160
                 CanSetTrackingOverride = true;
                 CanSetGuideRatesOverride = true;
             }
-            
+
+            if (radioButtonGuidingAlt.Checked)
+            {
+                GuideComp = 1;
+            }
+
             var profileProperties = new ProfileProperties
             {
 
@@ -130,7 +136,8 @@ namespace ASCOM.TTS160
                 CompatMode = CompatMode,
                 CanSetTrackingOverride = CanSetTrackingOverride,
                 CanSetGuideRatesOverride = CanSetGuideRatesOverride,
-                SyncTimeOnConnect = TimeSyncChk.Checked
+                SyncTimeOnConnect = TimeSyncChk.Checked,
+                GuideComp = GuideComp
 
             };
 
@@ -174,7 +181,24 @@ namespace ASCOM.TTS160
                     break;
             }
 
+            switch (profileProperties.GuideComp)
+            {
+                case 0:
+                    radioButtonGuidingNone.Checked = true;
+                    radioButtonGuidingAlt.Checked = false;
+                    break;
+                case 1:
+                    radioButtonGuidingNone.Checked = false;
+                    radioButtonGuidingAlt.Checked = true;
+                    break;
+            }
+
             TimeSyncChk.Checked = profileProperties.SyncTimeOnConnect;
+
+        }
+
+        private void radioButtonGuidingEl_CheckedChanged(object sender, EventArgs e)
+        {
 
         }
     }
