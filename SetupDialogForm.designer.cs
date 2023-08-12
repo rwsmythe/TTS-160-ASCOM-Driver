@@ -47,6 +47,10 @@ namespace ASCOM.TTS160
             this.noneBtn = new System.Windows.Forms.RadioButton();
             this.TimeSyncChk = new System.Windows.Forms.CheckBox();
             this.groupGuideComp = new System.Windows.Forms.GroupBox();
+            this.label7 = new System.Windows.Forms.Label();
+            this.label1 = new System.Windows.Forms.Label();
+            this.textBuffer = new System.Windows.Forms.TextBox();
+            this.textMaxDelta = new System.Windows.Forms.TextBox();
             this.radioButtonGuidingAlt = new System.Windows.Forms.RadioButton();
             this.radioButtonGuidingNone = new System.Windows.Forms.RadioButton();
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).BeginInit();
@@ -58,7 +62,7 @@ namespace ASCOM.TTS160
             // 
             this.cmdOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.cmdOK.Location = new System.Drawing.Point(1132, 702);
+            this.cmdOK.Location = new System.Drawing.Point(1513, 700);
             this.cmdOK.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.cmdOK.Name = "cmdOK";
             this.cmdOK.Size = new System.Drawing.Size(157, 57);
@@ -71,7 +75,7 @@ namespace ASCOM.TTS160
             // 
             this.cmdCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.cmdCancel.Location = new System.Drawing.Point(1132, 774);
+            this.cmdCancel.Location = new System.Drawing.Point(1513, 772);
             this.cmdCancel.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.cmdCancel.Name = "cmdCancel";
             this.cmdCancel.Size = new System.Drawing.Size(157, 60);
@@ -85,7 +89,7 @@ namespace ASCOM.TTS160
             this.picASCOM.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.picASCOM.Cursor = System.Windows.Forms.Cursors.Hand;
             this.picASCOM.Image = global::ASCOM.TTS160.Properties.Resources.ASCOM;
-            this.picASCOM.Location = new System.Drawing.Point(1162, 21);
+            this.picASCOM.Location = new System.Drawing.Point(1543, 21);
             this.picASCOM.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.picASCOM.Name = "picASCOM";
             this.picASCOM.Size = new System.Drawing.Size(48, 56);
@@ -259,14 +263,61 @@ namespace ASCOM.TTS160
             // 
             // groupGuideComp
             // 
+            this.groupGuideComp.Controls.Add(this.label7);
+            this.groupGuideComp.Controls.Add(this.label1);
+            this.groupGuideComp.Controls.Add(this.textBuffer);
+            this.groupGuideComp.Controls.Add(this.textMaxDelta);
             this.groupGuideComp.Controls.Add(this.radioButtonGuidingAlt);
             this.groupGuideComp.Controls.Add(this.radioButtonGuidingNone);
-            this.groupGuideComp.Location = new System.Drawing.Point(542, 553);
+            this.groupGuideComp.Location = new System.Drawing.Point(873, 404);
             this.groupGuideComp.Name = "groupGuideComp";
-            this.groupGuideComp.Size = new System.Drawing.Size(419, 200);
+            this.groupGuideComp.Size = new System.Drawing.Size(567, 308);
             this.groupGuideComp.TabIndex = 18;
             this.groupGuideComp.TabStop = false;
             this.groupGuideComp.Text = "Guiding Compensation";
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.Location = new System.Drawing.Point(31, 252);
+            this.label7.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(182, 32);
+            this.label7.TabIndex = 14;
+            this.label7.Text = "Buffer (msec)";
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(31, 195);
+            this.label1.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(229, 32);
+            this.label1.TabIndex = 13;
+            this.label1.Text = "Max delta (msec)";
+            this.label1.Click += new System.EventHandler(this.label1_Click);
+            // 
+            // textBuffer
+            // 
+            this.textBuffer.CharacterCasing = System.Windows.Forms.CharacterCasing.Lower;
+            this.textBuffer.Location = new System.Drawing.Point(262, 252);
+            this.textBuffer.Name = "textBuffer";
+            this.textBuffer.Size = new System.Drawing.Size(268, 38);
+            this.textBuffer.TabIndex = 12;
+            this.textBuffer.Text = "20";
+            this.textBuffer.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.textBuffer.TextChanged += new System.EventHandler(this.textBuffer_TextChanged);
+            // 
+            // textMaxDelta
+            // 
+            this.textMaxDelta.CharacterCasing = System.Windows.Forms.CharacterCasing.Lower;
+            this.textMaxDelta.Location = new System.Drawing.Point(262, 195);
+            this.textMaxDelta.Name = "textMaxDelta";
+            this.textMaxDelta.Size = new System.Drawing.Size(268, 38);
+            this.textMaxDelta.TabIndex = 11;
+            this.textMaxDelta.Text = "1000";
+            this.textMaxDelta.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.textMaxDelta.TextChanged += new System.EventHandler(this.textMaxDelta_TextChanged);
             // 
             // radioButtonGuidingAlt
             // 
@@ -295,7 +346,7 @@ namespace ASCOM.TTS160
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(16F, 31F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1316, 852);
+            this.ClientSize = new System.Drawing.Size(1697, 850);
             this.Controls.Add(this.groupGuideComp);
             this.Controls.Add(this.TimeSyncChk);
             this.Controls.Add(this.compatBox);
@@ -355,5 +406,9 @@ namespace ASCOM.TTS160
         private System.Windows.Forms.GroupBox groupGuideComp;
         private System.Windows.Forms.RadioButton radioButtonGuidingAlt;
         private System.Windows.Forms.RadioButton radioButtonGuidingNone;
+        private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox textBuffer;
+        private System.Windows.Forms.TextBox textMaxDelta;
     }
 }

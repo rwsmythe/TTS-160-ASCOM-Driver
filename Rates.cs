@@ -100,20 +100,22 @@ namespace ASCOM.TTS160
                 case TelescopeAxes.axisPrimary:
                     // TODO Initialize this array with any Primary axis rates that your driver may provide
                     // Example: m_Rates = new Rate[] { new Rate(10.5, 30.2), new Rate(54.0, 43.6) }
-                    // Currently, TTS-160 supports 1, 3, 5, 10, 20 "/sec.  Selection happens in the handpad, these are for reference only
-                    // I added in the slew rates (1, 2, 3, 4 deg/sec) because some programs refer to these rates when determining GoTo times...
-                    rates = new Rate[] { new Rate(0.000277777777777778, 0.000277777777777778), new Rate(0.000833333333333333, 0.000833333333333333),
-                    new Rate( 0.00138888888888889, 0.00138888888888889), new Rate( 0.00277777777777778, 0.00277777777777778),
-                    new Rate( 0.00555555555555555, 0.00555555555555555), new Rate( 1, 1), new Rate( 2, 2), new Rate( 3, 3),
-                    new Rate( 4, 4)};
+                    // **Currently, TTS-160 supports 1, 3, 5, 10, 20 "/sec.  Selection happens in the handpad, these are for reference only
+                    // **I added in the slew rates (1, 2, 3, 4 deg/sec) because some programs refer to these rates when determining GoTo times...
+                    //
+                    // Note (21Jul23): The above is incorrect, rates are selectable to 3, 2.2, 1.4 and guide rates.  I will use 1 "/sec as a label,
+                    // if selected, the mount will move at the currently selected guide rate
+                    rates = new Rate[] { new Rate(0.000277777777777778, 0.000277777777777778),
+                        new Rate( 1.4, 1.4), new Rate( 2.2, 2.2), new Rate( 3, 3) };
                     break;
                 case TelescopeAxes.axisSecondary:
-                    // Currently, TTS-160 supports 1, 3, 5, 10, 20 "/sec.  Selection happens in the handpad, these are for reference only
-                    // I added in the slew rates (1, 2, 3, 4 deg/sec) because some programs refer to these rates when determining GoTo times...
-                    rates = new Rate[] { new Rate(0.000277777777777778, 0.000277777777777778), new Rate(0.000833333333333333, 0.000833333333333333),
-                    new Rate( 0.00138888888888889, 0.00138888888888889), new Rate( 0.00277777777777778, 0.00277777777777778),
-                    new Rate( 0.00555555555555555, 0.00555555555555555), new Rate( 1, 1), new Rate( 2, 2), new Rate( 3, 3),
-                    new Rate( 4, 4)};
+                    // **Currently, TTS-160 supports 1, 3, 5, 10, 20 "/sec.  Selection happens in the handpad, these are for reference only
+                    // **I added in the slew rates (1, 2, 3, 4 deg/sec) because some programs refer to these rates when determining GoTo times...
+                    //
+                    // Note (21Jul23): The above is incorrect, rates are selectable to 3, 2.2, 1.4 and guide rates.  I will use 1 "/sec as a label,
+                    // if selected, the mount will move at the currently selected guide rate
+                    rates = new Rate[] { new Rate(0.000277777777777778, 0.000277777777777778),
+                        new Rate( 1.4, 1.4), new Rate( 2.2, 2.2), new Rate( 3, 3) };
                     break;
                 case TelescopeAxes.axisTertiary:
                     // TODO Initialize this array with any Tertiary axis rates that your driver may provide

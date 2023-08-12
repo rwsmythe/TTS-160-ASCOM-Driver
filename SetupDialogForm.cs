@@ -137,7 +137,9 @@ namespace ASCOM.TTS160
                 CanSetTrackingOverride = CanSetTrackingOverride,
                 CanSetGuideRatesOverride = CanSetGuideRatesOverride,
                 SyncTimeOnConnect = TimeSyncChk.Checked,
-                GuideComp = GuideComp
+                GuideComp = GuideComp,
+                GuideCompMaxDelta = Int32.Parse(textMaxDelta.Text),
+                GuideCompBuffer = Int32.Parse(textBuffer.Text)
 
             };
 
@@ -150,6 +152,10 @@ namespace ASCOM.TTS160
             SiteAltTxt.Text = profileProperties.SiteElevation.ToString();
 
             SlewSetTimeTxt.Text = profileProperties.SlewSettleTime.ToString();
+
+            textMaxDelta.Text = profileProperties.GuideCompMaxDelta.ToString();
+
+            textBuffer.Text = profileProperties.GuideCompBuffer.ToString();
 
             if (profileProperties.SiteLatitude == 100)
             {
@@ -200,6 +206,29 @@ namespace ASCOM.TTS160
         private void radioButtonGuidingEl_CheckedChanged(object sender, EventArgs e)
         {
 
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textMaxDelta_TextChanged(object sender, EventArgs e)
+        {
+            if (System.Text.RegularExpressions.Regex.IsMatch(textMaxDelta.Text, "[^0-9]"))
+            {
+                MessageBox.Show("Please enter only numbers");
+                textMaxDelta.Text = textMaxDelta.Text.Remove(textMaxDelta.Text.Length - 1);
+            }
+        }
+
+        private void textBuffer_TextChanged(object sender, EventArgs e)
+        {
+            if (System.Text.RegularExpressions.Regex.IsMatch(textBuffer.Text, "[^0-9]"))
+            {
+                MessageBox.Show("Please enter only numbers");
+                textBuffer.Text = textBuffer.Text.Remove(textBuffer.Text.Length - 1);
+            }
         }
     }
 

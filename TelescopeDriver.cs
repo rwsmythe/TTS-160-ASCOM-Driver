@@ -22,6 +22,8 @@
 //
 // Date			Who	Vers	Description
 // -----------	---	-----	-------------------------------------------------------
+// 21JUL2023    RWS 1.0.1   Added in selectable slew speeds
+// 06JUL2023    RWS 1.0.1RC4 Added in guiding compensation in azimuth based off of target altitude
 // 13JUN2023    RWS 1.0.1RC1 Troubleshooting missing pulseguide command and apparently stuck IsPulseGuiding value
 // 09JUN2023    RWS 1.0.0   First release version
 // 08JUN2023    RWS 0.9.5   Added in App Compatability feature for MPM and time sync feature
@@ -92,7 +94,7 @@ namespace ASCOM.TTS160
         /// This driver is intended to specifically support TTS-160 Panther mount, based on the LX200 protocol.
         /// Driver description that displays in the ASCOM Chooser.
         /// </summary>
-        private static string driverVersion = "1.0.1RC3";
+        private static string driverVersion = "1.0.1";
         private static string driverDescription = "TTS-160 v." + driverVersion;
         private Serial serialPort;
 
@@ -121,6 +123,10 @@ namespace ASCOM.TTS160
         internal static string SyncTimeOnConnectDefault = "true";
         internal static string GuideCompName = "Guiding Compensation";
         internal static string GuideCompDefault = "0";
+        internal static string GuideCompMaxDeltaName = "Guiding Compensation Max Delta";
+        internal static string GuideCompMaxDeltaDefault = "1000";
+        internal static string GuideCompBufferName = "Guiding Compensation Buffer";
+        internal static string GuideCompBufferDefault = "20";
 
         /// <summary>
         /// Private variable to hold the connected state
@@ -1416,6 +1422,7 @@ namespace ASCOM.TTS160
                 //Rate checking required by ASCOM standards
 
                 var absRate = Math.Abs(Rate);
+                tl.LogMessage("MoveAxis", "Setting rate to " + absRate.ToString() + " deg/sec");
 
                 switch (absRate)
                 {
@@ -1423,15 +1430,34 @@ namespace ASCOM.TTS160
                     case (0):
                         //do nothing, it's ok this time as we're halting the slew.
                         break;
-                    
-                    case var s when new[] { 0.000277777777777778, 0.000833333333333333, 0.00138888888888889,
-                        0.00277777777777778, 0.00555555555555555, 1, 2, 3, 4 }.Contains(s):
-                    //do nothing, rate selection not supported, but this is valid
 
-                    break;
+                    case (0.000277777777777778):
+                        CommandBlind(":RG#", true);
+                        break;
+
+                    case (1.4):
+                        CommandBlind(":RM#", true);
+                        break;
+
+                    case (2.2):
+                        CommandBlind(":RC#", true);
+                        break;
+
+                    case (3):
+                        CommandBlind(":RS#", true);
+                        break;
+                    //case var s when new[] { 0.000277777777777778, 1.4, 2.2, 3 }.Contains(s):
+                    //    tl.LogMessage("MoveAxis", "Setting rate to " + s.ToString() + " deg/sec");
+                    //    if (s == 3)
+                    //    {
+                    //        CommandBlind(":RS#", true);
+                    //    }
+                    //    else if (s == )
+
+                    //break;
                     default:
                         //invalid rate exception
-                        throw new InvalidValueException($"Rate {Rate} not supported");
+                        throw new InvalidValueException($"Rate {absRate} deg/sec not supported");
                 }
 
                 switch (Axis)
@@ -1572,29 +1598,38 @@ namespace ASCOM.TTS160
                     throw new InvalidOperationException("Unable to PulseGuide while moving same axis.");
 
                 //Check to see if GuideComp is enabled, then correct pulse length if required
-                int maxcomp = 1000; //set maximum allowable compensation time in msec (PHD2 is 1 sec)
-                int bufftime = 20; //set buffer time to decrement from max in msec to prevent tripping PHD2 limit
+                int maxcomp = profileProperties.GuideCompMaxDelta; //set maximum allowable compensation time in msec (PHD2 is 1 sec)
+                int bufftime = profileProperties.GuideCompBuffer; //set buffer time to decrement from max in msec to prevent tripping PHD2 limit
                 double maxalt = 89; //Sufficiently close to 90 to allow exceeding maxcomp while preventing divide by zero
 
                 if (profileProperties.GuideComp == 1)
                 {
-                    tl.LogMessage("PulseGuideComp", "Applying Altitude Compensation");
-                    double alt = Altitude;
-                    
-                    if (alt > maxalt) { alt = maxalt; }; //Prevent receiving divide by zero by limiting altitude to <90 deg
-                    
-                    double altrad = alt * Math.PI / 180; //convert to radians
-                    int compDuration = (int) Math.Round(Duration / Math.Cos(altrad)); //calculate compensated duration
-                    tl.LogMessage("PulseGuideComp", "Altitude: " + alt.ToString() + " deg (" + altrad.ToString() + " rad)");
-                    tl.LogMessage("PulseGuideComp", "Compensated Time: " + compDuration.ToString("D4"));
-                    
-                    if (compDuration > (Duration + maxcomp)) //verify we do not exceed maximum time value
+                    switch (Direction)
                     {
-                        compDuration = Duration + maxcomp - bufftime; //clip compensated time to maximum time value (with some buffer)
-                        tl.LogMessage("PulseGuideComp", "Compensated Time exceeds maximum: " + (Duration + maxcomp).ToString("D4"));
-                        tl.LogMessage("PulseGuideComp", "Setting compensated time to: " + compDuration.ToString("D4"));
+                        case GuideDirections.guideEast: 
+                        case GuideDirections.guideWest:
+
+                            tl.LogMessage("PulseGuideComp", "Applying Altitude Compensation");
+                            double alt = Altitude;
+
+                            if (alt > maxalt) { alt = maxalt; }; //Prevent receiving divide by zero by limiting altitude to <90 deg
+
+                            double altrad = alt * Math.PI / 180; //convert to radians
+                            int compDuration = (int)Math.Round(Duration / Math.Cos(altrad)); //calculate compensated duration
+                            tl.LogMessage("PulseGuideComp", "Altitude: " + alt.ToString() + " deg (" + altrad.ToString() + " rad)");
+                            tl.LogMessage("PulseGuideComp", "Compensated Time: " + compDuration.ToString("D4"));
+
+                            if (compDuration > (Duration + maxcomp)) //verify we do not exceed maximum time value
+                            {
+                                compDuration = Duration + maxcomp - bufftime; //clip compensated time to maximum time value (with some buffer)
+                                tl.LogMessage("PulseGuideComp", "Compensated Time exceeds maximum: " + (Duration + maxcomp).ToString("D4"));
+                                tl.LogMessage("PulseGuideComp", "Setting compensated time to: " + compDuration.ToString("D4"));
+                            }
+                            Duration = compDuration; //Compensated time is verified good, replace the ordered Duration
+                            break;
+
                     }
-                    Duration = compDuration; //Compensated time is verified good, replace the ordered Duration
+                   
                 }
                
                 IsPulseGuiding = true;
@@ -1915,12 +1950,12 @@ namespace ASCOM.TTS160
             {
                 try
                 {
-                    if (value > 0) 
+                    if (value >= 0) 
                     { 
                         profileProperties.SlewSettleTime = value;
                         WriteProfile(profileProperties);
                     }
-                    else { throw new InvalidValueException("Settle Time must be > 0"); }
+                    else { throw new InvalidValueException("Settle Time must be >= 0"); }
                 }
                 catch (Exception ex)
                 {
@@ -2333,64 +2368,6 @@ namespace ASCOM.TTS160
                 MiscResources.IsSlewingToTarget = true;  //Might be redundant...
                 MiscResources.IsSlewingAsync = true;
 
-                //int timeout = 3 * 60 * 1000;
-                //using (CancellationTokenSource cts = new CancellationTokenSource(timeout)) //Use task and cancellation token to prevent infinite loop
-                //{
-                    //CancellationToken ct = cts.Token;
-
-                    //tl.LogMessage("Starting Async Task", "");
-                        
-                /*
-                Task task = Task.Run(() =>
-                {
-
-                            //If we were tracking before (required for async), TTS-160 will stop tracking on commencement of slew
-                            //then resume tracking when slew complete.
-
-                            int counter = 0;
-                            int RateLimit = 200; //Wait time between queries, in msec
-                            int TimeLimit = 120; //How long to wait for slew to finish before throwing error, in sec
-                            tl.LogMessage("First Track Get in Async", "");
-                            bool curTrack = Tracking;
-                            tl.LogMessage("Entering Async Loop, Tracking Check:", curTrack.ToString());
-                            while (!curTrack)
-                            {
-                                curTrack = Tracking;
-                                tl.LogMessage("Check Tracking Status", curTrack + " time: " + (counter*.2).ToString());
-                                utilities.WaitForMilliseconds(RateLimit); //limit asking rate to 0.2 Hz
-                                counter++;
-                                if (counter > TimeLimit * 1000 / RateLimit)
-                                {
-                                    AbortSlew();
-                                    throw new ASCOM.DriverException("SlewToTarget Failed: Timeout");
-                                }
-                            }
-                            tl.LogMessage("Final Tracking Status", Tracking.ToString() + " at " + (counter*.2).ToString());
-                            utilities.WaitForMilliseconds(SlewSettleTime * 1000);
-                            tl.LogMessage("SlewSettleTime", "Complete");
-                            Slewing = false;
-                            tl.LogMessage("New Slew Status", Slewing.ToString());
-                            MiscResources.IsSlewingToTarget = false;
-                            return;
-                           
-                });
-                */
-                /*try
-                {
-                    tl.LogMessage("Starting await task", "");
-                    Task task = SlewMonitorAsync();
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    tl.LogMessage("Exception detected in await", ex.ToString());
-                    throw new Exception("Unknown Await Exception", ex);
-
-                }*/
-           
-                    
-
-                //}
             }
             catch (Exception ex)
             {
@@ -2398,46 +2375,6 @@ namespace ASCOM.TTS160
                 throw;
             }
         }
-
-        //method to monitor Async Slews
-        //public async Task SlewMonitorAsync()
-        //{
-            //Task task = Task.Run(() =>
-            //{
-
-                //If we were tracking before (required for async), TTS-160 will stop tracking on commencement of slew
-                //then resume tracking when slew complete.
-            /*    
-            await Task.Run(() =>
-                {
-                    int counter = 0;
-                    int RateLimit = 200; //Wait time between queries, in msec
-                    int TimeLimit = 120; //How long to wait for slew to finish before throwing error, in sec
-                    tl.LogMessage("First Track Get in Async", "");
-                    bool curTrack = Tracking;
-                    tl.LogMessage("Entering Async Loop, Tracking Check:", curTrack.ToString());
-                    while (!curTrack)
-                    {
-                        curTrack = Tracking;
-                        tl.LogMessage("Check Tracking Status", curTrack + " time: " + (counter * .2).ToString());
-                        utilities.WaitForMilliseconds(RateLimit); //limit asking rate to 0.2 Hz
-                        counter++;
-                        if (counter > TimeLimit * 1000 / RateLimit)
-                        {
-                            AbortSlew();
-                            throw new ASCOM.DriverException("SlewToTarget Failed: Timeout");
-                        }
-                    }
-                    tl.LogMessage("Final Tracking Status", Tracking.ToString() + " at " + (counter * .2).ToString());
-                    utilities.WaitForMilliseconds(SlewSettleTime * 1000);
-                    tl.LogMessage("SlewSettleTime", "Complete");
-                    Slewing = false;
-                    tl.LogMessage("New Slew Status", Slewing.ToString());
-                    MiscResources.IsSlewingToTarget = false;
-
-                });
-
-        }*/
 
         /// <summary>
         /// True if telescope is in the process of moving in response to one of the
@@ -2461,7 +2398,7 @@ namespace ASCOM.TTS160
                         if ((SlewSettleTime > 0) && (MiscResources.SlewSettleStart == DateTime.MinValue))
                         {
                             MiscResources.SlewSettleStart = DateTime.Now;
-                            tl.LogMessage("Slewing Status", MiscResources.IsSlewing.ToString());
+                            tl.LogMessage("Slewing Status", false.ToString() + "; Commencing Slew Settling");
                             return MiscResources.IsSlewing;
                         }
                         else
@@ -2476,14 +2413,14 @@ namespace ASCOM.TTS160
                         TimeSpan ts = DateTime.Now.Subtract(MiscResources.SlewSettleStart);
                         if (ts.TotalSeconds >= SlewSettleTime)
                         {
-                            tl.LogMessage("Slewing Status", false.ToString());
+                            tl.LogMessage("Slewing Status", false.ToString() + "; Slew Settling Complete");
                             MiscResources.IsSlewing = false;
                             MiscResources.SlewSettleStart = DateTime.MinValue;
                             return false;
                         }
                         else
                         {
-                            tl.LogMessage("Slewing Status", MiscResources.IsSlewing.ToString());
+                            tl.LogMessage("Slewing Status", false.ToString() + "; Slew Settling in progress");
                             return MiscResources.IsSlewing;
                         }
                     }
@@ -3048,6 +2985,8 @@ namespace ASCOM.TTS160
                 profileProperties.CanSetGuideRatesOverride = Convert.ToBoolean(driverProfile.GetValue(driverID, CanSetGuideRatesOverrideName, string.Empty, CanSetGuideRatesOverrideDefault));
                 profileProperties.SyncTimeOnConnect = Convert.ToBoolean(driverProfile.GetValue(driverID, SyncTimeOnConnectName, string.Empty, SyncTimeOnConnectDefault));
                 profileProperties.GuideComp = Int32.Parse(driverProfile.GetValue(driverID, GuideCompName, string.Empty, GuideCompDefault));
+                profileProperties.GuideCompMaxDelta = Int32.Parse(driverProfile.GetValue(driverID, GuideCompMaxDeltaName, string.Empty, GuideCompMaxDeltaDefault));
+                profileProperties.GuideCompBuffer = Int32.Parse(driverProfile.GetValue(driverID, GuideCompBufferName, string.Empty, GuideCompBufferDefault));
             }
             return profileProperties;
         }
@@ -3073,6 +3012,8 @@ namespace ASCOM.TTS160
                 driverProfile.WriteValue(driverID, CanSetGuideRatesOverrideName, profileProperties.CanSetGuideRatesOverride.ToString());
                 driverProfile.WriteValue(driverID, SyncTimeOnConnectName, profileProperties.SyncTimeOnConnect.ToString());
                 driverProfile.WriteValue(driverID, GuideCompName, profileProperties.GuideComp.ToString());
+                driverProfile.WriteValue(driverID, GuideCompMaxDeltaName, profileProperties.GuideCompMaxDelta.ToString());
+                driverProfile.WriteValue(driverID, GuideCompBufferName, profileProperties.GuideCompBuffer.ToString());
             }
         }
 
