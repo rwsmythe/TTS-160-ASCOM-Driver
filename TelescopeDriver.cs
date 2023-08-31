@@ -402,12 +402,12 @@ namespace ASCOM.TTS160
         {
             get
             {
-                tl.LogMessage("Connected", "Get {0}", IsConnected);
+                tl.LogMessage("Connected", "Get " + IsConnected.ToString());
                 return IsConnected;
             }
             set
             {
-                tl.LogMessage("Connected", "Set {0}", value);
+                tl.LogMessage("Connected", "Set " + value.ToString());
                 if (value == IsConnected)
                     return;
 
@@ -2942,6 +2942,13 @@ namespace ASCOM.TTS160
             get
             {
                 // TODO check that the driver hardware connection exists and is connected to the hardware
+                //try
+                //{
+                    //if (connectedState == serialPort.Connected)
+                    //{
+                        //return
+                    //}
+                //}
                 return connectedState;
             }
         }

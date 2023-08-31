@@ -62,7 +62,7 @@ namespace ASCOM.TTS160
             // 
             this.cmdOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.cmdOK.Location = new System.Drawing.Point(1513, 700);
+            this.cmdOK.Location = new System.Drawing.Point(1503, 585);
             this.cmdOK.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.cmdOK.Name = "cmdOK";
             this.cmdOK.Size = new System.Drawing.Size(157, 57);
@@ -75,7 +75,7 @@ namespace ASCOM.TTS160
             // 
             this.cmdCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.cmdCancel.Location = new System.Drawing.Point(1513, 772);
+            this.cmdCancel.Location = new System.Drawing.Point(1503, 657);
             this.cmdCancel.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.cmdCancel.Name = "cmdCancel";
             this.cmdCancel.Size = new System.Drawing.Size(157, 60);
@@ -89,7 +89,7 @@ namespace ASCOM.TTS160
             this.picASCOM.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.picASCOM.Cursor = System.Windows.Forms.Cursors.Hand;
             this.picASCOM.Image = global::ASCOM.TTS160.Properties.Resources.ASCOM;
-            this.picASCOM.Location = new System.Drawing.Point(1543, 21);
+            this.picASCOM.Location = new System.Drawing.Point(1533, 21);
             this.picASCOM.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.picASCOM.Name = "picASCOM";
             this.picASCOM.Size = new System.Drawing.Size(48, 56);
@@ -102,7 +102,7 @@ namespace ASCOM.TTS160
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(35, 215);
+            this.label2.Location = new System.Drawing.Point(35, 77);
             this.label2.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(155, 32);
@@ -112,7 +112,7 @@ namespace ASCOM.TTS160
             // chkTrace
             // 
             this.chkTrace.AutoSize = true;
-            this.chkTrace.Location = new System.Drawing.Point(205, 281);
+            this.chkTrace.Location = new System.Drawing.Point(205, 143);
             this.chkTrace.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.chkTrace.Name = "chkTrace";
             this.chkTrace.Size = new System.Drawing.Size(163, 36);
@@ -123,7 +123,7 @@ namespace ASCOM.TTS160
             // comboBoxComPort
             // 
             this.comboBoxComPort.FormattingEnabled = true;
-            this.comboBoxComPort.Location = new System.Drawing.Point(205, 207);
+            this.comboBoxComPort.Location = new System.Drawing.Point(205, 69);
             this.comboBoxComPort.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.comboBoxComPort.Name = "comboBoxComPort";
             this.comboBoxComPort.Size = new System.Drawing.Size(233, 39);
@@ -132,7 +132,7 @@ namespace ASCOM.TTS160
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(526, 207);
+            this.label3.Location = new System.Drawing.Point(526, 69);
             this.label3.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(216, 32);
@@ -142,7 +142,7 @@ namespace ASCOM.TTS160
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(526, 283);
+            this.label4.Location = new System.Drawing.Point(526, 145);
             this.label4.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(319, 32);
@@ -153,7 +153,7 @@ namespace ASCOM.TTS160
             // SiteAltTxt
             // 
             this.SiteAltTxt.CharacterCasing = System.Windows.Forms.CharacterCasing.Lower;
-            this.SiteAltTxt.Location = new System.Drawing.Point(873, 200);
+            this.SiteAltTxt.Location = new System.Drawing.Point(873, 62);
             this.SiteAltTxt.Name = "SiteAltTxt";
             this.SiteAltTxt.Size = new System.Drawing.Size(268, 38);
             this.SiteAltTxt.TabIndex = 10;
@@ -164,7 +164,7 @@ namespace ASCOM.TTS160
             // SlewSetTimeTxt
             // 
             this.SlewSetTimeTxt.CharacterCasing = System.Windows.Forms.CharacterCasing.Lower;
-            this.SlewSetTimeTxt.Location = new System.Drawing.Point(873, 277);
+            this.SlewSetTimeTxt.Location = new System.Drawing.Point(873, 139);
             this.SlewSetTimeTxt.Name = "SlewSetTimeTxt";
             this.SlewSetTimeTxt.Size = new System.Drawing.Size(268, 38);
             this.SlewSetTimeTxt.TabIndex = 11;
@@ -175,7 +175,7 @@ namespace ASCOM.TTS160
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(35, 416);
+            this.label5.Location = new System.Drawing.Point(35, 278);
             this.label5.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(304, 32);
@@ -185,7 +185,7 @@ namespace ASCOM.TTS160
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(35, 469);
+            this.label6.Location = new System.Drawing.Point(35, 331);
             this.label6.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(328, 32);
@@ -197,7 +197,7 @@ namespace ASCOM.TTS160
             this.SiteLatlbl.AutoSize = true;
             this.SiteLatlbl.BackColor = System.Drawing.Color.White;
             this.SiteLatlbl.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.SiteLatlbl.Location = new System.Drawing.Point(414, 416);
+            this.SiteLatlbl.Location = new System.Drawing.Point(414, 278);
             this.SiteLatlbl.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.SiteLatlbl.MinimumSize = new System.Drawing.Size(304, 32);
             this.SiteLatlbl.Name = "SiteLatlbl";
@@ -209,7 +209,7 @@ namespace ASCOM.TTS160
             this.SiteLonglbl.AutoSize = true;
             this.SiteLonglbl.BackColor = System.Drawing.Color.White;
             this.SiteLonglbl.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.SiteLonglbl.Location = new System.Drawing.Point(414, 469);
+            this.SiteLonglbl.Location = new System.Drawing.Point(414, 331);
             this.SiteLonglbl.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.SiteLonglbl.MinimumSize = new System.Drawing.Size(304, 32);
             this.SiteLonglbl.Name = "SiteLonglbl";
@@ -220,7 +220,7 @@ namespace ASCOM.TTS160
             // 
             this.compatBox.Controls.Add(this.mpmBtn);
             this.compatBox.Controls.Add(this.noneBtn);
-            this.compatBox.Location = new System.Drawing.Point(41, 553);
+            this.compatBox.Location = new System.Drawing.Point(41, 415);
             this.compatBox.Name = "compatBox";
             this.compatBox.Size = new System.Drawing.Size(419, 200);
             this.compatBox.TabIndex = 16;
@@ -254,7 +254,7 @@ namespace ASCOM.TTS160
             this.TimeSyncChk.AutoSize = true;
             this.TimeSyncChk.Checked = true;
             this.TimeSyncChk.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.TimeSyncChk.Location = new System.Drawing.Point(41, 341);
+            this.TimeSyncChk.Location = new System.Drawing.Point(41, 203);
             this.TimeSyncChk.Name = "TimeSyncChk";
             this.TimeSyncChk.Size = new System.Drawing.Size(585, 36);
             this.TimeSyncChk.TabIndex = 17;
@@ -269,7 +269,7 @@ namespace ASCOM.TTS160
             this.groupGuideComp.Controls.Add(this.textMaxDelta);
             this.groupGuideComp.Controls.Add(this.radioButtonGuidingAlt);
             this.groupGuideComp.Controls.Add(this.radioButtonGuidingNone);
-            this.groupGuideComp.Location = new System.Drawing.Point(873, 404);
+            this.groupGuideComp.Location = new System.Drawing.Point(873, 266);
             this.groupGuideComp.Name = "groupGuideComp";
             this.groupGuideComp.Size = new System.Drawing.Size(567, 308);
             this.groupGuideComp.TabIndex = 18;
@@ -346,7 +346,7 @@ namespace ASCOM.TTS160
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(16F, 31F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1697, 850);
+            this.ClientSize = new System.Drawing.Size(1687, 735);
             this.Controls.Add(this.groupGuideComp);
             this.Controls.Add(this.TimeSyncChk);
             this.Controls.Add(this.compatBox);
