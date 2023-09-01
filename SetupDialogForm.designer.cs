@@ -53,16 +53,21 @@ namespace ASCOM.TTS160
             this.textMaxDelta = new System.Windows.Forms.TextBox();
             this.radioButtonGuidingAlt = new System.Windows.Forms.RadioButton();
             this.radioButtonGuidingNone = new System.Windows.Forms.RadioButton();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.radioLunar = new System.Windows.Forms.RadioButton();
+            this.radioSidereal = new System.Windows.Forms.RadioButton();
+            this.radioSolar = new System.Windows.Forms.RadioButton();
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).BeginInit();
             this.compatBox.SuspendLayout();
             this.groupGuideComp.SuspendLayout();
+            this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
             // cmdOK
             // 
             this.cmdOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.cmdOK.Location = new System.Drawing.Point(1503, 585);
+            this.cmdOK.Location = new System.Drawing.Point(1530, 574);
             this.cmdOK.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.cmdOK.Name = "cmdOK";
             this.cmdOK.Size = new System.Drawing.Size(157, 57);
@@ -75,7 +80,7 @@ namespace ASCOM.TTS160
             // 
             this.cmdCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.cmdCancel.Location = new System.Drawing.Point(1503, 657);
+            this.cmdCancel.Location = new System.Drawing.Point(1530, 646);
             this.cmdCancel.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.cmdCancel.Name = "cmdCancel";
             this.cmdCancel.Size = new System.Drawing.Size(157, 60);
@@ -89,7 +94,7 @@ namespace ASCOM.TTS160
             this.picASCOM.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.picASCOM.Cursor = System.Windows.Forms.Cursors.Hand;
             this.picASCOM.Image = global::ASCOM.TTS160.Properties.Resources.ASCOM;
-            this.picASCOM.Location = new System.Drawing.Point(1533, 21);
+            this.picASCOM.Location = new System.Drawing.Point(1560, 21);
             this.picASCOM.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.picASCOM.Name = "picASCOM";
             this.picASCOM.Size = new System.Drawing.Size(48, 56);
@@ -269,7 +274,7 @@ namespace ASCOM.TTS160
             this.groupGuideComp.Controls.Add(this.textMaxDelta);
             this.groupGuideComp.Controls.Add(this.radioButtonGuidingAlt);
             this.groupGuideComp.Controls.Add(this.radioButtonGuidingNone);
-            this.groupGuideComp.Location = new System.Drawing.Point(873, 266);
+            this.groupGuideComp.Location = new System.Drawing.Point(1041, 222);
             this.groupGuideComp.Name = "groupGuideComp";
             this.groupGuideComp.Size = new System.Drawing.Size(567, 308);
             this.groupGuideComp.TabIndex = 18;
@@ -342,11 +347,56 @@ namespace ASCOM.TTS160
             this.radioButtonGuidingNone.Text = "None";
             this.radioButtonGuidingNone.UseVisualStyleBackColor = true;
             // 
+            // groupBox1
+            // 
+            this.groupBox1.Controls.Add(this.radioSolar);
+            this.groupBox1.Controls.Add(this.radioLunar);
+            this.groupBox1.Controls.Add(this.radioSidereal);
+            this.groupBox1.Location = new System.Drawing.Point(532, 415);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(419, 257);
+            this.groupBox1.TabIndex = 19;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "Default Tracking Rate";
+            // 
+            // radioLunar
+            // 
+            this.radioLunar.AutoSize = true;
+            this.radioLunar.Location = new System.Drawing.Point(37, 123);
+            this.radioLunar.Name = "radioLunar";
+            this.radioLunar.Size = new System.Drawing.Size(124, 36);
+            this.radioLunar.TabIndex = 1;
+            this.radioLunar.Text = "Lunar";
+            this.radioLunar.UseVisualStyleBackColor = true;
+            // 
+            // radioSidereal
+            // 
+            this.radioSidereal.AutoSize = true;
+            this.radioSidereal.Checked = true;
+            this.radioSidereal.Location = new System.Drawing.Point(37, 67);
+            this.radioSidereal.Name = "radioSidereal";
+            this.radioSidereal.Size = new System.Drawing.Size(157, 36);
+            this.radioSidereal.TabIndex = 0;
+            this.radioSidereal.TabStop = true;
+            this.radioSidereal.Text = "Sidereal";
+            this.radioSidereal.UseVisualStyleBackColor = true;
+            // 
+            // radioSolar
+            // 
+            this.radioSolar.AutoSize = true;
+            this.radioSolar.Location = new System.Drawing.Point(37, 177);
+            this.radioSolar.Name = "radioSolar";
+            this.radioSolar.Size = new System.Drawing.Size(118, 36);
+            this.radioSolar.TabIndex = 2;
+            this.radioSolar.Text = "Solar";
+            this.radioSolar.UseVisualStyleBackColor = true;
+            // 
             // SetupDialogForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(16F, 31F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1687, 735);
+            this.ClientSize = new System.Drawing.Size(1714, 724);
+            this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.groupGuideComp);
             this.Controls.Add(this.TimeSyncChk);
             this.Controls.Add(this.compatBox);
@@ -378,6 +428,8 @@ namespace ASCOM.TTS160
             this.compatBox.PerformLayout();
             this.groupGuideComp.ResumeLayout(false);
             this.groupGuideComp.PerformLayout();
+            this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -410,5 +462,9 @@ namespace ASCOM.TTS160
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TextBox textBuffer;
         private System.Windows.Forms.TextBox textMaxDelta;
+        private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.RadioButton radioSolar;
+        private System.Windows.Forms.RadioButton radioLunar;
+        private System.Windows.Forms.RadioButton radioSidereal;
     }
 }

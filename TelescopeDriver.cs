@@ -22,6 +22,7 @@
 //
 // Date			Who	Vers	Description
 // -----------	---	-----	-------------------------------------------------------
+// 31AUG2023    RWS 1.1.0b1 Adding features for 353 firmware
 // 21JUL2023    RWS 1.0.1   Added in selectable slew speeds
 // 06JUL2023    RWS 1.0.1RC4 Added in guiding compensation in azimuth based off of target altitude
 // 13JUN2023    RWS 1.0.1RC1 Troubleshooting missing pulseguide command and apparently stuck IsPulseGuiding value
@@ -94,7 +95,7 @@ namespace ASCOM.TTS160
         /// This driver is intended to specifically support TTS-160 Panther mount, based on the LX200 protocol.
         /// Driver description that displays in the ASCOM Chooser.
         /// </summary>
-        private static string driverVersion = "1.0.1";
+        private static string driverVersion = "1.1.0b1";
         private static string driverDescription = "TTS-160 v." + driverVersion;
         private Serial serialPort;
 
@@ -115,8 +116,6 @@ namespace ASCOM.TTS160
         internal static string SiteLongitudeDefault = "200";
         internal static string CompatModeName = "Compatibility Mode";
         internal static string CompatModeDefault = "0";
-        internal static string CanSetTrackingOverrideName = "CanSetTracking Override";
-        internal static string CanSetTrackingOverrideDefault = "false";
         internal static string CanSetGuideRatesOverrideName = "CanSetGuideRates Override";
         internal static string CanSetGuideRatesOverrideDefault = "false";
         internal static string SyncTimeOnConnectName = "Sync Time on Connect";
@@ -127,6 +126,8 @@ namespace ASCOM.TTS160
         internal static string GuideCompMaxDeltaDefault = "1000";
         internal static string GuideCompBufferName = "Guiding Compensation Buffer";
         internal static string GuideCompBufferDefault = "20";
+        internal static string TrackingRateOnConnectName = "Tracking Rate on Connect";
+        internal static string TrackingRateOnConnectDefault = "0";
 
         /// <summary>
         /// Private variable to hold the connected state
@@ -232,8 +233,11 @@ namespace ASCOM.TTS160
         {
             get
             {
-                tl.LogMessage("SupportedActions Get", "Returning empty arraylist");
-                return new ArrayList();
+                tl.LogMessage("SupportedActions Get", "Returning arraylist");
+                return new ArrayList()
+                {
+                    "FieldRotationAngle"
+                };
             }
         }
 
@@ -247,7 +251,34 @@ namespace ASCOM.TTS160
         public string Action(string actionName, string actionParameters)
         {
             //tl.LogMessage("", "Action {0}, parameters {1} not implemented", actionName, actionParameters);
-            throw new ASCOM.ActionNotImplementedException("Action " + actionName + " is not implemented by this driver");
+            try
+            {
+
+                CheckConnected("Action");
+
+                actionName = actionName.ToLower();
+                switch (actionName)
+                {
+
+                    case "fieldrotationangle":
+                        tl.LogMessage("Action", "FieldRotationAngle - Retrieving FieldRotationAngle");
+                        var result = CommandString(":ra#", true);
+                        tl.LogMessage("Action", "FieldRotationAngle - Retrieved String: " + result);
+                        return result;
+
+                    default:
+                        throw new ASCOM.ActionNotImplementedException("Action " + actionName + " is not implemented by this driver");
+
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+                tl.LogMessage("Action", $"Error: {ex.Message}");
+                throw;
+            }
+
         }
 
         /// <summary>
@@ -446,6 +477,24 @@ namespace ASCOM.TTS160
                             tl.LogMessage("Connected", "Post Sync Computer UTC: " + DateTime.UtcNow.ToString("MM/dd/yy HH:mm:ss"));
 
                         }
+
+                        tl.LogMessage("Connected", "Establishing Tracking Rate - " + profileProperties.TrackingRateOnConnect.ToString());
+                        switch (profileProperties.TrackingRateOnConnect)
+                        {
+                            case 0:
+                                TrackingRate = DriveRates.driveSidereal;
+                                break;
+                            case 1:
+                                TrackingRate = DriveRates.driveLunar;
+                                break;
+                            case 2:
+                                TrackingRate = DriveRates.driveSolar;
+                                break;
+                            default:
+                                throw new ASCOM.InvalidValueException("Unexpected TrackingRateOnConnect Value: " + profileProperties.TrackingRateOnConnect.ToString());
+
+                        }
+                        
 
                     }
                     catch (Exception ex)
@@ -693,9 +742,13 @@ namespace ASCOM.TTS160
         {
             get
             {
-                //Park functionality is not implemented by TTS-160 at this time.  Return False.
-                tl.LogMessage("AtPark", "Get - " + false.ToString());
-                return false;
+                tl.LogMessage("AtPark", "Get - " + MiscResources.IsParked.ToString());
+                return MiscResources.IsParked;
+            }
+            set
+            {
+                tl.LogMessage("AtPark", "Set - " + value.ToString());
+                MiscResources.IsParked = value;
             }
         }
 
@@ -811,14 +864,13 @@ namespace ASCOM.TTS160
                 try
                 {
                     CheckConnected("CanPark");
-                    
-                    //TTS-160 does not yet have CanPark implemented, return false
-                    tl.LogMessage("CanPark", "Get - " + false.ToString());
-                    return false;
+
+                    tl.LogMessage("CanPark", "Get - " + true.ToString());
+                    return true;
                 }
                 catch (Exception ex)
                 {
-                    tl.LogMessage("CanFindHome", $"Error: {ex.Message}");
+                    tl.LogMessage("CanPark", $"Error: {ex.Message}");
                     throw;
                 }
 
@@ -989,19 +1041,8 @@ namespace ASCOM.TTS160
                                   
                     CheckConnected("CanSetTracking");
 
-                    //Check for override for App Compatibility Mode
-                    if (profileProperties.CanSetTrackingOverride)
-                    {
-                        tl.LogMessage("CanSetTracking Override", "Showing CanSetTracking as True");
-                        tl.LogMessage("CanSetTracking", "Get - " + true.ToString());
-                        return true;
-                    }
-                    else
-                    {
-                        //Set Tracking not implemented in TTS-160, return false
-                        tl.LogMessage("CanSetTracking", "Get - " + false.ToString());
-                        return false;
-                    }
+                    tl.LogMessage("CanSetTracking", "Get - " + true.ToString());
+                    return true;
 
                 }
                 catch (Exception ex)
@@ -1563,8 +1604,27 @@ namespace ASCOM.TTS160
         /// </summary>
         public void Park()
         {
-            tl.LogMessage("Park", "Not implemented");
-            throw new MethodNotImplementedException("Park");
+            try
+            {
+                CheckConnected("Park");
+                tl.LogMessage("Park", "Parking Mount");
+                if (!AtPark)
+                {
+                    CommandBlind(":hP#", true);
+                    AtPark = true;
+                    tl.LogMessage("Park", "Mount is Parked");
+                }
+                else
+                {
+                    tl.LogMessage("Park", "AtPark is " + AtPark.ToString());
+                    tl.LogMessage("Park", "Ignoring Park command");
+                }
+            }
+            catch (Exception ex)
+            {
+                tl.LogMessage("Park", $"Error: {ex.Message}");
+                throw;
+            }
         }
 
         /// <summary>
@@ -1975,19 +2035,21 @@ namespace ASCOM.TTS160
             try
             {
                 CheckConnected("SlewToAltAz");
-                //TODO Parked is not implemented, no need to check
-                if (Tracking) { throw new ASCOM.InvalidOperationException("Cannot SlewToAltAz while Tracking"); }
+                if (AtPark) { throw new ASCOM.ParkedException("Cannot SlewToAltAz while mount is parked"); }
+                //if (Tracking) { throw new ASCOM.InvalidOperationException("Cannot SlewToAltAz while Tracking"); }
+                //Since SlewToAltAz uses SlewToCoordinates, Tracking MUST be enabled else slew will never work
+
 
                 if ((Azimuth < 0) || (Azimuth > 360)) { throw new ASCOM.InvalidValueException($"Invalid Azimuth ${Azimuth}"); }
                 if ((Altitude < 0) || (Altitude > 90)) { throw new ASCOM.InvalidValueException($"Invalid Altitude ${Altitude}"); }
 
+                //Convert AltAz to RaDec Topocentric
                 T.SiteLatitude = SiteLatitude;
                 T.SiteLongitude = (-1)*SiteLongitude;
                 T.SiteElevation = 0;
                 T.SiteTemperature = 20;
                 T.Refraction = false;
                 T.SetAzimuthElevation(Azimuth, Altitude);
-                //DateTime utc = UTCDate;
                 double utc = astroUtilities.JulianDateUtc;
                 T.JulianDateUTC = utc;
 
@@ -2031,12 +2093,12 @@ namespace ASCOM.TTS160
         /// <param name="Altitude">Altitude to which to move to</param>
         public void SlewToAltAzAsync(double Azimuth, double Altitude)
         {
-            //throw new MethodNotImplementedException("SlewToAltAzAsync");
             try
             {
                 CheckConnected("SlewToAltAzAsync");
-                //TODO Parked is not implemented, no need to check
-                if (Tracking) { throw new ASCOM.InvalidOperationException("Cannot SlewToAltAzAsync while Tracking"); }
+                if (AtPark) { throw new ASCOM.ParkedException("Cannot SlewToAltAzAsync while mount is parked"); }
+                //if (Tracking) { throw new ASCOM.InvalidOperationException("Cannot SlewToAltAzAsync while Tracking"); }
+                //Since SlewToAltAzAsync uses SlewToCoordinatesAsync, Tracking MUST be enabled else slew will never work
 
                 if ((Azimuth < 0) || (Azimuth > 360)) { throw new ASCOM.InvalidValueException($"Invalid Azimuth ${Azimuth}"); }
                 if ((Altitude < 0) || (Altitude > 90)) { throw new ASCOM.InvalidValueException($"Invalid Altitude ${Altitude}"); }
@@ -2086,8 +2148,8 @@ namespace ASCOM.TTS160
             try
             {
                 CheckConnected("SlewToCoordinates");
-                //TODO TTS-160 does not have park implemented, no point in checking it
-                //TODO TTS-160 does not have tracking control implemented, no point in checking it
+                if (AtPark) { throw new ASCOM.ParkedException("Cannot SlewToCoordinates while mount is parked"); }
+                if (!Tracking) { throw new ASCOM.InvalidOperationException("Cannot SlewToCoordinates while not Tracking"); }
 
                 if ((Declination >= -90) && (Declination <= 90))
                 {
@@ -2121,13 +2183,12 @@ namespace ASCOM.TTS160
         /// </summary>
         public void SlewToCoordinatesAsync(double RightAscension, double Declination)
         {
-            //throw new MethodNotImplementedException("SlewToCoordinatesAsync");
             tl.LogMessage("SlewToCoordinatesAsync", "Setting Coordinates as Target and Slewing");
             try
             {
                 CheckConnected("SlewToCoordinatesAsync");
-                //TODO TTS-160 does not have park implemented, no point in checking it
-                //TODO TTS-160 does not have tracking control implemented, no point in checking it
+                if (AtPark) { throw new ASCOM.ParkedException("Cannot SlewToCoordinatesAsync while mount is parked"); }
+                if (!Tracking) { throw new ASCOM.InvalidOperationException("Cannot SlewToCoordinatesAsync while not Tracking"); }
 
                 if ((Declination >= -90) && (Declination <= 90))
                 {
@@ -2155,31 +2216,6 @@ namespace ASCOM.TTS160
             }
         }
 
-        /*
-        int _countTaken = 0;
-        public void SlewToTarget()
-        {
-            
-            //Prevents parallel execution of GoTo
-            //other alternative is to hold until slew complete
-            Interlocked.Increment(ref _countTaken);
-            try
-            {
-                if (_countTaken > 1)
-                    throw new ASCOM.InvalidOperationException("Error: GoTo in Progress");
-                SlewStart();
-            }
-            catch (Exception ex)
-            {
-                tl.LogMessage("SlewToTarget", $"Error: {ex.Message}");
-                throw;
-            }
-            finally
-            {
-                Interlocked.Decrement(ref _countTaken);
-            }
-        }*/
-
         /// <summary>
         /// Move the telescope to the <see cref="TargetRightAscension" /> and <see cref="TargetDeclination" /> coordinates.
         /// This method must be implemented if <see cref="CanSlew" /> returns True.
@@ -2194,6 +2230,9 @@ namespace ASCOM.TTS160
             {
                 if (!MiscResources.IsTargetSet) { throw new Exception("Target Not Set"); }
                 CheckConnected("SlewToTarget");
+                if (AtPark) { throw new ASCOM.ParkedException("Cannot SlewToTarget while mount is parked"); }
+                if (!Tracking) { throw new ASCOM.InvalidOperationException("Cannot SlewToTarget while not Tracking"); }
+
                 if (MiscResources.IsSlewingToTarget) //Are we currently in a GoTo?
                 {
                     //ToDo: Decide whether to throw SlewInProgress exception or simply wait...
@@ -2202,8 +2241,6 @@ namespace ASCOM.TTS160
                     //while (MiscResources.IsSlewingToTarget) { utilities.WaitForMilliseconds(200); }
                 }
 
-                //TTS-160 does not have Park implemented, no need to check
-                //TTS-160 does not have Tracking control implemented, no need to check
                 bool wasTracking = Tracking;
 
                 double TargRA = MiscResources.Target.RightAscension;
@@ -2339,13 +2376,16 @@ namespace ASCOM.TTS160
         /// </summary>
         public async void SlewToTargetAsync()
         {
-            //throw new MethodNotImplementedException("SlewToTargetAsync");
+
             tl.LogMessage("SlewToTargetAsync", "Slewing To Target");
 
             try
             {
                 if (!MiscResources.IsTargetSet) { throw new Exception("Target Not Set"); }
                 CheckConnected("SlewToTargetAsync");
+                if (AtPark) { throw new ASCOM.ParkedException("Cannot SlewToTargetAsync while mount is parked"); }
+                if (!Tracking) { throw new ASCOM.InvalidOperationException("Cannot SlewToTargetAsync while not Tracking"); }
+
                 if (MiscResources.IsSlewingToTarget) //Are we currently in a GoTo?
                 {
                     //ToDo: Decide whether to throw SlewInProgress exception or simply wait...
@@ -2354,15 +2394,12 @@ namespace ASCOM.TTS160
                     //while (MiscResources.IsSlewingToTarget) { utilities.WaitForMilliseconds(200); }
                 }
 
-                if (!Tracking) { throw new ASCOM.InvalidOperationException("Error: Tracking not enabled"); }
-                //TTS-160 does not have Park implemented, no need to check
-
                 double TargRA = MiscResources.Target.RightAscension;
                 double TargDec = MiscResources.Target.Declination;
                 //Assume Target is valid due to setting checks
 
                 bool result = CommandBool(":MS#", true);
-                if (result) { throw new Exception("Unable to slew:" + result); }  //Need to review other implementation
+                if (result) { throw new Exception("Unable to slew:" + result.ToString()); }  //Need to review other implementation
 
                 Slewing = true;
                 MiscResources.IsSlewingToTarget = true;  //Might be redundant...
@@ -2719,17 +2756,19 @@ namespace ASCOM.TTS160
             set
             {
 
-                if (profileProperties.CanSetTrackingOverride)
+                try
                 {
-                    tl.LogMessage("CanSetTracking Override", "Tracking " + value.ToString() + " command received");
-                    tl.LogMessage("Tracking", "Set - " + value.ToString() + " assigned to nothing...");
+                    CheckConnected("SetTracking");
+                    tl.LogMessage("Tracking Set", "Set Track Enabled to: " + value.ToString());
+                    if (value) { CommandBlind("T1#", true); }
+                    else if (!value) { CommandBlind("T0#", true); }
+                    else { throw new ASCOM.InvalidValueException("Expected True or False, received: " + value.ToString()); }
                 }
-                else
+                catch (Exception ex)
                 {
-                    tl.LogMessage("Tracking Set", "Not implemented");
-                    throw new PropertyNotImplementedException("Tracking", true);
+                    tl.LogMessage("Tracking Set", $"Error: {ex.Message}");
+                    throw;
                 }
-
 
             }
         }
@@ -2742,14 +2781,55 @@ namespace ASCOM.TTS160
             get
             {
                 //TTS-160 does not have tracking rate implemented, return default value                
-                const DriveRates DEFAULT_DRIVERATE = DriveRates.driveSidereal;
-                tl.LogMessage("TrackingRate Get", $"{DEFAULT_DRIVERATE}");
-                return DEFAULT_DRIVERATE;
+                //const DriveRates DEFAULT_DRIVERATE = DriveRates.driveSidereal;
+                try
+                {
+                    CheckConnected("TrackingRate Get");
+
+                    tl.LogMessage("TrackingRate Get", $"{MiscResources.TrackingRateCurrent}");
+                    return MiscResources.TrackingRateCurrent;
+                }
+                catch (Exception ex) 
+                {
+                    tl.LogMessage("TrackingRate Get", $"Error: {ex.Message}");
+                    throw;
+                }
+
             }
             set
             {
-                tl.LogMessage("TrackingRate Set", "Not implemented");
-                throw new PropertyNotImplementedException("TrackingRate", true);
+
+                try
+                {
+
+                    CheckConnected("SetTrackingRate");
+                    tl.LogMessage("TrackingRate Set", "Setting Tracking Rate: " + value.ToString());
+                    switch (value)
+                    {
+                        case DriveRates.driveSidereal:
+                            CommandBlind(":TQ#", true);
+                            break;
+
+                        case DriveRates.driveLunar:
+                            CommandBlind(":TL#", true);
+                            break;
+
+                        case DriveRates.driveSolar:
+                            CommandBlind(":TS#", true);
+                            break;
+
+                        default:
+                            throw new ASCOM.InvalidValueException("Invalid Rate: " + value.ToString());
+                    
+                    }
+                    MiscResources.TrackingRateCurrent = value;
+                    tl.LogMessage("TrackingRate Set", "Tracking Rate Set To: " + value.ToString());
+                }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("TrackingRate Set", $"Error: {ex.Message}");
+                    throw;
+                }
             }
         }
 
@@ -2988,12 +3068,12 @@ namespace ASCOM.TTS160
                 profileProperties.SiteLatitude = Double.Parse(driverProfile.GetValue(driverID, SiteLatitudeName, string.Empty, SiteLatitudeDefault));
                 profileProperties.SiteLongitude = Double.Parse(driverProfile.GetValue(driverID, SiteLongitudeName, string.Empty, SiteLongitudeDefault));
                 profileProperties.CompatMode = Int32.Parse(driverProfile.GetValue(driverID, CompatModeName, string.Empty, CompatModeDefault));
-                profileProperties.CanSetTrackingOverride = Convert.ToBoolean(driverProfile.GetValue(driverID, CanSetTrackingOverrideName, string.Empty, CanSetTrackingOverrideDefault));
                 profileProperties.CanSetGuideRatesOverride = Convert.ToBoolean(driverProfile.GetValue(driverID, CanSetGuideRatesOverrideName, string.Empty, CanSetGuideRatesOverrideDefault));
                 profileProperties.SyncTimeOnConnect = Convert.ToBoolean(driverProfile.GetValue(driverID, SyncTimeOnConnectName, string.Empty, SyncTimeOnConnectDefault));
                 profileProperties.GuideComp = Int32.Parse(driverProfile.GetValue(driverID, GuideCompName, string.Empty, GuideCompDefault));
                 profileProperties.GuideCompMaxDelta = Int32.Parse(driverProfile.GetValue(driverID, GuideCompMaxDeltaName, string.Empty, GuideCompMaxDeltaDefault));
                 profileProperties.GuideCompBuffer = Int32.Parse(driverProfile.GetValue(driverID, GuideCompBufferName, string.Empty, GuideCompBufferDefault));
+                profileProperties.TrackingRateOnConnect = Int32.Parse(driverProfile.GetValue(driverID, TrackingRateOnConnectName, string.Empty, TrackingRateOnConnectDefault));
             }
             return profileProperties;
         }
@@ -3015,12 +3095,12 @@ namespace ASCOM.TTS160
                 driverProfile.WriteValue(driverID, SiteLatitudeName, profileProperties.SiteLatitude.ToString());
                 driverProfile.WriteValue(driverID, SiteLongitudeName, profileProperties.SiteLongitude.ToString());
                 driverProfile.WriteValue(driverID, CompatModeName, profileProperties.CompatMode.ToString());
-                driverProfile.WriteValue(driverID, CanSetTrackingOverrideName, profileProperties.CanSetTrackingOverride.ToString());
                 driverProfile.WriteValue(driverID, CanSetGuideRatesOverrideName, profileProperties.CanSetGuideRatesOverride.ToString());
                 driverProfile.WriteValue(driverID, SyncTimeOnConnectName, profileProperties.SyncTimeOnConnect.ToString());
                 driverProfile.WriteValue(driverID, GuideCompName, profileProperties.GuideComp.ToString());
                 driverProfile.WriteValue(driverID, GuideCompMaxDeltaName, profileProperties.GuideCompMaxDelta.ToString());
                 driverProfile.WriteValue(driverID, GuideCompBufferName, profileProperties.GuideCompBuffer.ToString());
+                driverProfile.WriteValue(driverID, TrackingRateOnConnectName, profileProperties.TrackingRateOnConnect.ToString());
             }
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using ASCOM.DeviceInterface;
 
 namespace ASCOM.TTS160
 {
@@ -99,6 +100,21 @@ namespace ASCOM.TTS160
         {
             get => _SlewSettleStart;
             internal set => _SlewSettleStart = value;
+        }
+
+        private static DriveRates _TrackingRateCurrent = DriveRates.driveSidereal;
+        public static DriveRates TrackingRateCurrent
+        {
+            get => _TrackingRateCurrent;
+            internal set => _TrackingRateCurrent = value;
+
+        }
+
+        private static bool _IsParked = false;
+        public static bool IsParked
+        {
+            get => _IsParked;
+            internal set => _IsParked = value;
         }
     }
 }

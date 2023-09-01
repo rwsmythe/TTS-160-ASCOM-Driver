@@ -109,6 +109,7 @@ namespace ASCOM.TTS160
 
             int CompatMode = 0;
             int GuideComp = 0;
+            int DefaultTracking = 0;
             bool CanSetTrackingOverride = false;
             bool CanSetGuideRatesOverride = false;
             
@@ -123,6 +124,13 @@ namespace ASCOM.TTS160
             {
                 GuideComp = 1;
             }
+
+            if (radioSidereal.Checked) { DefaultTracking = 0; } else
+            if (radioLunar.Checked) { DefaultTracking = 1;} else
+            if (radioSolar.Checked) { DefaultTracking = 2;}
+
+
+
 
             var profileProperties = new ProfileProperties
             {
@@ -139,7 +147,8 @@ namespace ASCOM.TTS160
                 SyncTimeOnConnect = TimeSyncChk.Checked,
                 GuideComp = GuideComp,
                 GuideCompMaxDelta = Int32.Parse(textMaxDelta.Text),
-                GuideCompBuffer = Int32.Parse(textBuffer.Text)
+                GuideCompBuffer = Int32.Parse(textBuffer.Text),
+                TrackingRateOnConnect = DefaultTracking
 
             };
 
@@ -197,6 +206,26 @@ namespace ASCOM.TTS160
                     radioButtonGuidingNone.Checked = false;
                     radioButtonGuidingAlt.Checked = true;
                     break;
+            }
+
+            switch (profileProperties.TrackingRateOnConnect)
+            {
+                case 0:
+                    radioSidereal.Checked = true;
+                    radioLunar.Checked = false;
+                    radioSolar.Checked = false;
+                    break;
+                case 1:
+                    radioSidereal.Checked = false;
+                    radioLunar.Checked = true;
+                    radioSolar.Checked= false;
+                    break;
+                case 2:
+                    radioSidereal.Checked = false;
+                    radioLunar.Checked= false;
+                    radioSolar.Checked = true;
+                    break;
+
             }
 
             TimeSyncChk.Checked = profileProperties.SyncTimeOnConnect;

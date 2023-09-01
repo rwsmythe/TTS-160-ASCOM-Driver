@@ -21,7 +21,8 @@ namespace ASCOM.TTS160
         public int GuideComp { get; set; }  //Improves guiding by compensating pulse length and/or pulse direction
         public int GuideCompMaxDelta { get; set; }
         public int GuideCompBuffer { get; set; }
+        public int TrackingRateOnConnect { get; set; }
 
-           
+            
     }
 }
