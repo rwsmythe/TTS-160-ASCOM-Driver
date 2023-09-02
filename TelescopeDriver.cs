@@ -22,7 +22,7 @@
 //
 // Date			Who	Vers	Description
 // -----------	---	-----	-------------------------------------------------------
-// 31AUG2023    RWS 1.1.0b1 Adding features for 353 firmware
+// 31AUG2023    RWS 353.0.0 Adding features for 353 firmware
 // 21JUL2023    RWS 1.0.1   Added in selectable slew speeds
 // 06JUL2023    RWS 1.0.1RC4 Added in guiding compensation in azimuth based off of target altitude
 // 13JUN2023    RWS 1.0.1RC1 Troubleshooting missing pulseguide command and apparently stuck IsPulseGuiding value
@@ -95,7 +95,7 @@ namespace ASCOM.TTS160
         /// This driver is intended to specifically support TTS-160 Panther mount, based on the LX200 protocol.
         /// Driver description that displays in the ASCOM Chooser.
         /// </summary>
-        private static string driverVersion = "1.1.0b1";
+        private static string driverVersion = "353.0.0b2";
         private static string driverDescription = "TTS-160 v." + driverVersion;
         private Serial serialPort;
 
@@ -149,11 +149,6 @@ namespace ASCOM.TTS160
         /// </summary>
         internal TraceLogger tl;
 
-        /// <summary>
-        /// Variable to provide traffic control for serial communications
-        /// </summary>
-        //private static readonly Mutex serMutex = new Mutex();
-
         // object used for locking to prevent multiple drivers accessing common code at the same time
         private static readonly object LockObject = new object();
 
@@ -161,11 +156,6 @@ namespace ASCOM.TTS160
         /// Variable to provide coordinate Transforms
         /// </summary>
         private readonly Transform T;
-
-        /// <summary>
-        /// Variable to control transmission rate and provide mount time to respond
-        /// </summary>
-        //private readonly int TRANSMIT_WAIT_TIME = 50; //msec
 
         ///<summary>
         ///Accessible profile to apply changes to
@@ -250,7 +240,7 @@ namespace ASCOM.TTS160
         /// </returns>
         public string Action(string actionName, string actionParameters)
         {
-            //tl.LogMessage("", "Action {0}, parameters {1} not implemented", actionName, actionParameters);
+            tl.LogMessage("Action", "Action: " + actionName + "; Parameters: " + actionParameters);
             try
             {
 
@@ -2802,7 +2792,7 @@ namespace ASCOM.TTS160
                     //var ret = CommandString(":GW#", true);
                     var ret = Commander(":GW#", true, 2);
                     bool tracking = (ret[1] == 'T');
-                    tl.LogMessage("Tracking", "Get - " + tracking.ToString());
+                    tl.LogMessage("Tracking Get", "Get - " + tracking.ToString());
                     return tracking;
                 }
                 catch (Exception ex)
@@ -2819,8 +2809,8 @@ namespace ASCOM.TTS160
                 {
                     CheckConnected("SetTracking");
                     tl.LogMessage("Tracking Set", "Set Tracking Enabled to: " + value.ToString());
-                    if (value) { Commander("T1#", true, 0); }
-                    else if (!value) { Commander("T0#", true, 0); }
+                    if (value) { Commander(":T1#", true, 0); }
+                    else if (!value) { Commander(":T0#", true, 0); }
                     else { throw new ASCOM.InvalidValueException("Expected True or False, received: " + value.ToString()); }
                     bool verify = Tracking;
                     tl.LogMessage("Tracking Set", "Tracking verification is: " + verify.ToString());
@@ -2841,8 +2831,6 @@ namespace ASCOM.TTS160
         {
             get
             {
-                //TTS-160 does not have tracking rate implemented, return default value                
-                //const DriveRates DEFAULT_DRIVERATE = DriveRates.driveSidereal;
                 try
                 {
                     CheckConnected("TrackingRate Get");
