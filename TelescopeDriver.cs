@@ -165,7 +165,7 @@ namespace ASCOM.TTS160
         /// <summary>
         /// Variable to control transmission rate and provide mount time to respond
         /// </summary>
-        private readonly int TRANSMIT_WAIT_TIME = 50; //msec
+        //private readonly int TRANSMIT_WAIT_TIME = 50; //msec
 
         ///<summary>
         ///Accessible profile to apply changes to
@@ -281,6 +281,38 @@ namespace ASCOM.TTS160
 
         }
 
+        public string Commander(string command, bool raw, int commandtype)
+        {
+            lock (LockObject)
+            {
+                try
+                {
+                    switch (commandtype)
+                    {
+                        case 0:
+                            CommandBlind(command, raw);
+                            return "";
+
+                        case 1:
+                            bool resultbool = CommandBool(command, raw);
+                            return resultbool.ToString();
+
+                        case 2:
+                            string resultstr = CommandString(command, raw);
+                            return resultstr;
+
+                        default:
+                            throw new ASCOM.DriverException("Invalid Command Type: " + commandtype.ToString());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    tl.LogMessage("Commander", $"Error: {ex.Message}");
+                    throw;
+                }
+            }
+        }
+
         /// <summary>
         /// Transmits an arbitrary string to the device and does not wait for a response.
         /// Optionally, protocol framing characters may be added to the string before transmission.
@@ -292,27 +324,23 @@ namespace ASCOM.TTS160
         /// </param>
         public void CommandBlind(string command, bool raw)
         {
-            lock (LockObject)
+
+            try
             {
 
-                try
-                {
+                CheckConnected("CommandBlind");
+                tl.LogMessage("CommandBlind", $"raw: {raw} command {command}");
 
-                    CheckConnected("CommandBlind");
-                    tl.LogMessage("CommandBlind", $"raw: {raw} command {command}");
+                if (!raw) { command = ":" + command + "#"; }
 
-                    if (!raw) { command = ":" + command + "#"; }
-
-                    serialPort.ClearBuffers();
-                    serialPort.Transmit(command);
-                    utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate.  May need to change to Thread.Sleep();
-                    tl.LogMessage("CommandBlind", $"{command} Completed");
-                }
-                catch (Exception ex)
-                {
-                    tl.LogMessage("CommandBlind", $"Error: {ex.Message}");
-                    throw;
-                }
+                serialPort.ClearBuffers();
+                serialPort.Transmit(command);
+                tl.LogMessage("CommandBlind", $"{command} Completed");
+            }
+            catch (Exception ex)
+            {
+                tl.LogMessage("CommandBlind", $"Error: {ex.Message}");
+                throw;
             }
         }
 
@@ -330,33 +358,36 @@ namespace ASCOM.TTS160
         /// </returns>
         public bool CommandBool(string command, bool raw)
         {
-            lock (LockObject)
+
+            try
             {
+                // TODO The optional CommandBool method should either be implemented OR throw a MethodNotImplementedException
+                // If implemented, CommandBool must send the supplied command to the mount, wait for a response and parse this to return a True or False value
 
-                try
+                CheckConnected("CommandBool");
+
+                tl.LogMessage("CommandBool", $"raw: {raw} command {command}");
+
+                if (!raw) { command = ":" + command + "#"; }
+
+                serialPort.ClearBuffers();
+                serialPort.Transmit(command);
+                                                                    //Does not take into account if retString[0] is not 1 or 0...            
+                var result = serialPort.ReceiveCounted(1);
+                bool retBool = char.GetNumericValue(result[0]) == 1; // Parse the returned string and create a boolean True / False value
+                                                                     //serialPort.ClearBuffers();
+                tl.LogMessage("CommandBool", $"{command} Completed: {result} Parsed as: {retBool}");
+                if (retBool && command.Equals(":MS#"))
                 {
-                    // TODO The optional CommandBool method should either be implemented OR throw a MethodNotImplementedException
-                    // If implemented, CommandBool must send the supplied command to the mount, wait for a response and parse this to return a True or False value
-
-                    CheckConnected("CommandBool");
-
-                    tl.LogMessage("CommandBool", $"raw: {raw} command {command}");
-
-                    if (!raw) { command = ":" + command + "#"; }
-
-                    serialPort.ClearBuffers();
-                    serialPort.Transmit(command);
-                    var result = serialPort.ReceiveCounted(1);
-                    bool retBool = char.GetNumericValue(result[0]) == 1; // Parse the returned string and create a boolean True / False value
-                    utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate.  Trying wait before reading return.  Lock should allow this to work                                                     //Does not take into account if retString[0] is not 1 or 0...            
-                    tl.LogMessage("CommandBool", $"{command} Completed: {result} Parsed as: {retBool}");
-                    return retBool; // Return the boolean value to the client
+                    var clrbuf = serialPort.ReceiveTerminated("#");
+                    tl.LogMessage("CommandBool", "Dumping String: " + clrbuf);
                 }
-                catch (Exception ex)
-                {
-                    tl.LogMessage("CommandString", $"Error: {ex.Message}");
-                    throw;
-                }
+                return retBool; // Return the boolean value to the client
+            }
+            catch (Exception ex)
+            {
+                tl.LogMessage("CommandBool", $"Error: {ex.Message}");
+                throw;
             }
         }
 
@@ -374,35 +405,29 @@ namespace ASCOM.TTS160
         /// </returns>
         public string CommandString(string command, bool raw)
         {
-            //CheckConnected("CommandString");
-            // TODO The optional CommandString method should either be implemented OR throw a MethodNotImplementedException
-            // If implemented, CommandString must send the supplied command to the mount and wait for a response before returning this to the client
 
-            //throw new ASCOM.MethodNotImplementedException("CommandString");
-
-            lock (LockObject)
+            try
             {
-                try
-                {
-                    CheckConnected("CommandString");
+                CheckConnected("CommandString");
 
-                    tl.LogMessage("CommandString", $"raw: {raw} command {command}");
- 
-                    if (!raw) { command = ":" + command + "#"; }
+                tl.LogMessage("CommandString", $"raw: {raw} command {command}");
 
-                    serialPort.ClearBuffers();
-                    serialPort.Transmit(command);
-                    var result = serialPort.ReceiveTerminated("#");  //assumes that all return strings are # terminated...is this true?
-                    utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate
-                    tl.LogMessage("CommandString", $"{command} Completed: {result}");
+                if (!raw) { command = ":" + command + "#"; }
 
-                    return result;
-                }
-                catch (Exception ex)
-                {
-                    tl.LogMessage("CommandString", $"Error: {ex.Message}");
-                    throw;
-                }
+                serialPort.ClearBuffers();
+                serialPort.Transmit(command);
+                var result = serialPort.ReceiveTerminated("#");  //assumes that all return strings are # terminated...is this true?
+                                                                 //tl.LogMessage("CommandString", "utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME);");
+                                                                 //utilities.WaitForMilliseconds(TRANSMIT_WAIT_TIME); //limit transmit rate
+                                                                 //tl.LogMessage("CommandString", "completed serial port receive...");
+                tl.LogMessage("CommandString", $"{command} Completed: {result}");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                tl.LogMessage("CommandString", $"Error: {ex.Message}");
+                throw;
             }
 
         }
@@ -616,7 +641,8 @@ namespace ASCOM.TTS160
 
                 tl.LogMessage("AbortSlew", "Aborting Slew, CommandBlind :Q#");
                 CheckConnected("AbortSlew");
-                CommandBlind(":Q#", true);
+                //CommandBlind(":Q#", true);
+                Commander(":Q#", true, 0);
                 Slewing = false;
                 MiscResources.IsSlewingAsync = false;
                 MiscResources.IsSlewingToTarget = false;
@@ -646,7 +672,8 @@ namespace ASCOM.TTS160
                 {
                     CheckConnected("AlignmentMode");
 
-                    String ret = CommandString(":GW#", true);
+                    //String ret = CommandString(":GW#", true);
+                    String ret = Commander(":GW#", true, 2);
                     switch (ret[0])
                     {
                         case 'A': return DeviceInterface.AlignmentModes.algAltAz;
@@ -677,14 +704,15 @@ namespace ASCOM.TTS160
                     tl.LogMessage("Altitude Get", "Getting Altitude");
                     CheckConnected("Altitude Get");
 
-                    var result = CommandString(":GA#", true);
+                    //var result = CommandString(":GA#", true);
+                    var result = Commander(":GA#", true, 2);
                     //:GA# Get telescope altitude
                     //Returns: DDD*MM# or DDD*MM'SS#
                     //The current telescope Altitude depending on the selected precision.
 
                     double alt = utilities.DMSToDegrees(result);
 
-                    tl.LogMessage("Azimuth Get", $"{alt}");
+                    tl.LogMessage("Altitude Get", $"{alt}");
                     return alt;
 
                 }
@@ -787,7 +815,8 @@ namespace ASCOM.TTS160
                     tl.LogMessage("Azimuth Get", "Getting Azimuth");
                     CheckConnected("Azimuth Get");
 
-                    var result = CommandString(":GZ#", true);
+                    //var result = CommandString(":GZ#", true);
+                    var result = Commander(":GZ#", true, 2);
                     //:GZ# Get telescope azimuth
                     //Returns: DDD*MM#T or DDD*MM'SS# verify low precision returns with T at the end!
                     //The current telescope Azimuth depending on the selected precision.
@@ -1221,7 +1250,8 @@ namespace ASCOM.TTS160
                     //tl.LogMessage("Declination Get", "Getting Declination");
                     CheckConnected("Declination Get");
 
-                    var result = CommandString(":GD#", true);
+                    //var result = CommandString(":GD#", true);
+                    var result = Commander(":GD#", true, 2);
                     //:GD# Get telescope Declination
                     //Returns: DDD*MM#T or DDD*MM'SS#
                     //The current telescope Declination depending on the selected precision.
@@ -1473,19 +1503,23 @@ namespace ASCOM.TTS160
                         break;
 
                     case (0.000277777777777778):
-                        CommandBlind(":RG#", true);
+                        //CommandBlind(":RG#", true);
+                        Commander(":RG#", true, 0);
                         break;
 
                     case (1.4):
-                        CommandBlind(":RM#", true);
+                        //CommandBlind(":RM#", true);
+                        Commander(":RM#", true, 0);
                         break;
 
                     case (2.2):
-                        CommandBlind(":RC#", true);
+                        //CommandBlind(":RC#", true);
+                        Commander(":RC#", true, 0);
                         break;
 
                     case (3):
-                        CommandBlind(":RS#", true);
+                        //CommandBlind(":RS#", true);
+                        Commander(":RS#", true, 0);
                         break;
                     //case var s when new[] { 0.000277777777777778, 1.4, 2.2, 3 }.Contains(s):
                     //    tl.LogMessage("MoveAxis", "Setting rate to " + s.ToString() + " deg/sec");
@@ -1514,13 +1548,15 @@ namespace ASCOM.TTS160
                                 //}
                                
                                 tl.LogMessage("MoveAxis", "Stop Movement");
-                                CommandBlind(":Qe#", true);
+                                //CommandBlind(":Qe#", true);
+                                Commander(":Qe#", true, 0);
                                     //:Qe# Halt eastward Slews
                                     //Returns: Nothing
-                                CommandBlind(":Qw#", true);
+                                //CommandBlind(":Qw#", true);
+                                Commander(":Qw#", true, 0);
                                     //:Qw# Halt westward Slews
                                     //Returns: Nothing
-                                
+
                                 MiscResources.MovingPrimary = false;
                                 //Per ASCOM standard, SHOULD be incorporating SlewSettleTime
                                 tl.LogMessage("MoveAxis", "Secondary Stop Movement - Slewing False");
@@ -1528,7 +1564,8 @@ namespace ASCOM.TTS160
                                 break;
                             case ComparisonResult.Greater:
                                 tl.LogMessage("MoveAxis", "Move East");
-                                CommandBlind(":Me#", true);
+                                //CommandBlind(":Me#", true);
+                                Commander(":Me#", true, 0);
                                 //:Me# Move Telescope East at current slew rate
                                 //Returns: Nothing
                                 MiscResources.MovingPrimary = true;
@@ -1536,7 +1573,8 @@ namespace ASCOM.TTS160
                                 break;
                             case ComparisonResult.Lower:
                                 tl.LogMessage("MoveAxis", "Move West");
-                                CommandBlind(":Mw#", true);
+                                //CommandBlind(":Mw#", true);
+                                Commander(":Mw#", true, 0);
                                 //:Mw# Move Telescope West at current slew rate
                                 //Returns: Nothing
                                 MiscResources.MovingPrimary = true;
@@ -1556,10 +1594,12 @@ namespace ASCOM.TTS160
                                 //}
 
                                 tl.LogMessage("MoveAxis", "Secondary Stop Movement");
-                                CommandBlind(":Qn#", true);
+                                //CommandBlind(":Qn#", true);
+                                Commander(":Qn#", true, 0);
                                     //:Qn# Halt northward Slews
                                     //Returns: Nothing
-                                CommandBlind(":Qs#", true);
+                                //CommandBlind(":Qs#", true);
+                                Commander(":Qs#", true, 0);
                                     //:Qs# Halt southward Slews
                                     //Returns: Nothing
 
@@ -1570,7 +1610,8 @@ namespace ASCOM.TTS160
                                 break;
                             case ComparisonResult.Greater:
                                 tl.LogMessage("MoveAxis", "Move North");
-                                CommandBlind(":Mn#", true);
+                                //CommandBlind(":Mn#", true);
+                                Commander(":Mn#", true, 0);
                                 //:Mn# Move Telescope North at current slew rate
                                 //Returns: Nothing
                                 MiscResources.MovingSecondary = true;
@@ -1578,7 +1619,8 @@ namespace ASCOM.TTS160
                                 break;
                             case ComparisonResult.Lower:
                                 tl.LogMessage("MoveAxis", "Move South");
-                                CommandBlind(":Ms#", true);
+                                //CommandBlind(":Ms#", true);
+                                Commander(":Ms#", true, 0);
                                 //:Ms# Move Telescope South at current slew rate
                                 //Returns: Nothing
                                 MiscResources.MovingSecondary = true;
@@ -1699,25 +1741,29 @@ namespace ASCOM.TTS160
                     case GuideDirections.guideEast:
                         var guidecmde = ":Mge" + Duration.ToString("D4") + "#";
                         tl.LogMessage("GuideEast", guidecmde);
-                        CommandBlind(guidecmde, true);
+                        //CommandBlind(guidecmde, true);
+                        Commander(guidecmde, true, 0);
                         Thread.Sleep(Duration);
                         break;
                     case GuideDirections.guideNorth:
                         var guidecmdn = ":Mgn" + Duration.ToString("D4") + "#";
                         tl.LogMessage("GuideNorth", guidecmdn);
-                        CommandBlind(guidecmdn, true);
+                        //CommandBlind(guidecmdn, true);
+                        Commander(guidecmdn, true, 0);
                         Thread.Sleep(Duration);
                         break;
                     case GuideDirections.guideSouth:
                         var guidecmds = ":Mgs" + Duration.ToString("D4") + "#";
                         tl.LogMessage("GuideSouth", guidecmds);
-                        CommandBlind(guidecmds, true);
+                        //CommandBlind(guidecmds, true);
+                        Commander(guidecmds, true, 0);
                         Thread.Sleep(Duration);
                         break;
                     case GuideDirections.guideWest:
                         var guidecmdw = ":Mgw" + Duration.ToString("D4") + "#";
                         tl.LogMessage("GuideWest", guidecmdw);
-                        CommandBlind(guidecmdw, true);
+                        //CommandBlind(guidecmdw, true);
+                        Commander(guidecmdw, true, 0);
                         Thread.Sleep(Duration);
                         break;
                 }
@@ -1756,7 +1802,8 @@ namespace ASCOM.TTS160
                     //tl.LogMessage("Right Ascension Get", "Getting Right Ascension");
                     CheckConnected("Right Ascension Get");
 
-                    var result = CommandString(":GR#", true);
+                    //var result = CommandString(":GR#", true);
+                    var result = Commander(":GR#", true, 2);
                     //:GR# Get telescope Right Ascension
                     //Returns: HH:MM.T# or HH:MM:SS#
                     //The current telescope Right Ascension depending on the selected precision.
@@ -1876,7 +1923,8 @@ namespace ASCOM.TTS160
                 try
                 {
                     CheckConnected("SiderealTime");
-                    var result = CommandString(":GS#", true).TrimEnd('#');
+                    //var result = CommandString(":GS#", true).TrimEnd('#');
+                    var result = Commander(":GS#", true, 2).TrimEnd('#');
                     double siderealTime = utilities.HMSToHours(result);
                     double siteLongitude = SiteLongitude;
                     tl.LogMessage("SiderealTime", "Get GMST - " + siderealTime.ToString());
@@ -1937,7 +1985,8 @@ namespace ASCOM.TTS160
                     tl.LogMessage("SiteLatitude Get", "Getting Site Latitude");
                     CheckConnected("SiteLatitude Get");
 
-                    var result = CommandString(":Gt#", true);
+                    //var result = CommandString(":Gt#", true);
+                    var result = Commander(":Gt#", true, 2);
                     //:Gt# Get Site Latitude
                     //Returns: sDD*MM#
 
@@ -1974,7 +2023,8 @@ namespace ASCOM.TTS160
                     tl.LogMessage("SiteLongitude Get", "Getting Site Longitude");
                     CheckConnected("SiteLongitude Get");
 
-                    var result = CommandString(":Gg#", true);
+                    //var result = CommandString(":Gg#", true);
+                    var result = Commander(":Gg#", true, 2);
                     //:Gg# Get Site Longitude
                     //Returns: sDDD*MM#, east negative
 
@@ -2206,8 +2256,9 @@ namespace ASCOM.TTS160
                 {
                     throw new ASCOM.InvalidValueException($"Invalid Right Ascension: {RightAscension}");
                 }
-                tl.LogMessage("Starting Async Slew", RightAscension.ToString() + "; " + Declination.ToString());
+                tl.LogMessage("SlewToCoordinatesAsync","Starting Async Slew: " + RightAscension.ToString() + "; " + Declination.ToString());
                 SlewToTargetAsync();
+                tl.LogMessage("SlewToCoordinatesAsync", "Slew Commenced");
             }
             catch (Exception ex)
             {
@@ -2247,7 +2298,8 @@ namespace ASCOM.TTS160
                 double TargDec = MiscResources.Target.Declination;
                 //Assume Target is valid due to setting checks
                 
-                bool result = CommandBool(":MS#", true);
+                //bool result = CommandBool(":MS#", true);
+                bool result = bool.Parse(Commander(":MS#", true, 1));
                 if (result) { throw new Exception("Unable to slew:" + result + " Object Below Horizon"); }  //Need to review other implementation
 
                 Slewing = true;
@@ -2338,7 +2390,8 @@ namespace ASCOM.TTS160
                                 case 0:
                                     Slewing = false;
                                     MiscResources.IsSlewingToTarget = false;
-                                    CommandBlind(":Q#", true);
+                                    //CommandBlind(":Q#", true);
+                                    Commander(":Q#", true, 0);
                                     throw new ASCOM.DriverException("SlewToTarget Failed");
                                 default:
                                     faultinc--;
@@ -2374,14 +2427,14 @@ namespace ASCOM.TTS160
         /// This method must be implemented if <see cref="CanSlewAsync" /> returns True.
         /// It returns immediately, with <see cref="Slewing" /> set to True
         /// </summary>
-        public async void SlewToTargetAsync()
+        public void SlewToTargetAsync()
         {
 
             tl.LogMessage("SlewToTargetAsync", "Slewing To Target");
 
             try
             {
-                if (!MiscResources.IsTargetSet) { throw new Exception("Target Not Set"); }
+                if (!MiscResources.IsTargetSet) { throw new ASCOM.ValueNotSetException("Target Not Set"); }
                 CheckConnected("SlewToTargetAsync");
                 if (AtPark) { throw new ASCOM.ParkedException("Cannot SlewToTargetAsync while mount is parked"); }
                 if (!Tracking) { throw new ASCOM.InvalidOperationException("Cannot SlewToTargetAsync while not Tracking"); }
@@ -2394,12 +2447,13 @@ namespace ASCOM.TTS160
                     //while (MiscResources.IsSlewingToTarget) { utilities.WaitForMilliseconds(200); }
                 }
 
-                double TargRA = MiscResources.Target.RightAscension;
-                double TargDec = MiscResources.Target.Declination;
+                //double TargRA = MiscResources.Target.RightAscension;
+                //double TargDec = MiscResources.Target.Declination;
                 //Assume Target is valid due to setting checks
 
-                bool result = CommandBool(":MS#", true);
-                if (result) { throw new Exception("Unable to slew:" + result.ToString()); }  //Need to review other implementation
+                //bool result = CommandBool(":MS#", true);
+                bool result = bool.Parse(Commander(":MS#", true, 1));
+                if (result) { throw new ASCOM.InvalidOperationException("Unable to slew: target below horizon"); }  //Need to review other implementation
 
                 Slewing = true;
                 MiscResources.IsSlewingToTarget = true;  //Might be redundant...
@@ -2545,7 +2599,8 @@ namespace ASCOM.TTS160
                 {
                     throw new ASCOM.InvalidValueException($"Invalid Right Ascension: {RightAscension}");
                 }
-                var ret = CommandString(":CM#", true);
+                //var ret = CommandString(":CM#", true);
+                var ret = Commander(":CM#", true, 2);
                 tl.LogMessage("SyncToCoordinates", "Complete: " + ret);
 
             }
@@ -2569,9 +2624,9 @@ namespace ASCOM.TTS160
                 //TODO Parked is not implemented, no need to check
                 //TODO Tracking control is not implemented in TTS-160, no point in checking it
 
-                var ret = CommandString(":CM#", true);  //For some reason TTS-160 returns a message and not catching it causes
-                                                //further commands to act funny (results are 1 order off despite the
-                                                //buffer clears
+                //var ret = CommandString(":CM#", true);  //For some reason TTS-160 returns a message and not catching it causes
+                var ret = Commander(":CM#", true, 2);  //further commands to act funny (results are 1 order off despite the
+                                                         //buffer clears)
                 tl.LogMessage("SyncToTarget", "Complete: " + ret);
             }
             catch (Exception ex)
@@ -2630,11 +2685,13 @@ namespace ASCOM.TTS160
                         bool result = false;
                         if (value >= 0)
                         {
-                            result = CommandBool($":Sd+{targDec}#", true);
+                            //result = CommandBool($":Sd+{targDec}#", true);
+                            result = bool.Parse(Commander($":Sd+{targDec}#", true, 1));
                         }
                         else
                         {
-                            result = CommandBool($":Sd{targDec}#", true);
+                            //result = CommandBool($":Sd{targDec}#", true);
+                            result = bool.Parse(Commander($":Sd{targDec}#", true, 1));
                         }
                     
                         if (!result ) { throw new ASCOM.InvalidValueException("Invalid Target Declination:" + targDec); }
@@ -2705,7 +2762,8 @@ namespace ASCOM.TTS160
                     else
                     {
                         string targRA = utilities.HoursToHMS(value, ":", ":");
-                        bool result = CommandBool(":Sr" + targRA + "#", true);
+                        //bool result = CommandBool(":Sr" + targRA + "#", true);
+                        bool result = bool.Parse(Commander(":Sr" + targRA + "#", true, 1));
 
                         if (!result) { throw new ASCOM.InvalidValueException("Invalid Target Right Ascension:" + targRA); }
 
@@ -2741,7 +2799,8 @@ namespace ASCOM.TTS160
                 {
                     CheckConnected("GetTracking");
                     tl.LogMessage("Tracking Get", "Retrieving Tracking Status");
-                    var ret = CommandString(":GW#", true);
+                    //var ret = CommandString(":GW#", true);
+                    var ret = Commander(":GW#", true, 2);
                     bool tracking = (ret[1] == 'T');
                     tl.LogMessage("Tracking", "Get - " + tracking.ToString());
                     return tracking;
@@ -2864,9 +2923,12 @@ namespace ASCOM.TTS160
                 {
                     CheckConnected("UTCDateGet");
 
-                    var localdate = CommandString(":GC#", true);
-                    var localtime = CommandString(":GL#", true);
-                    var utcoffset = CommandString(":GG#", true);
+                    //var localdate = CommandString(":GC#", true);
+                    //var localtime = CommandString(":GL#", true);
+                    //var utcoffset = CommandString(":GG#", true);
+                    var localdate = Commander(":GC#", true, 2);
+                    var localtime = Commander(":GL#", true, 2);
+                    var utcoffset = Commander(":GG#", true, 2);
 
                     int mo = Int32.Parse(localdate.Substring(0, 2));
                     int da = Int32.Parse(localdate.Substring(3, 2));
@@ -2902,17 +2964,20 @@ namespace ASCOM.TTS160
                     CheckConnected("UTCDateSet");
 
                     //This converts the provided UTC value to local and updates TTS-160
-                    var utcoffset = CommandString(":GG#", true);
+                    //var utcoffset = CommandString(":GG#", true);
+                    var utcoffset = Commander(":GG#", true, 2);
                     double utcoffsetnum = double.Parse(utcoffset.TrimEnd('#'));
                     DateTime localdatetime = value.AddHours((-1) * utcoffsetnum);
 
                     string newdate = localdatetime.ToString("MM/dd/yy");
-                    string res = CommandString(":SC" + newdate + "#", true);
+                    //string res = CommandString(":SC" + newdate + "#", true);
+                    string res = Commander(":SC" + newdate + "#", true, 2);
                     bool resBool = char.GetNumericValue(res[0]) == 1;
                     if (!resBool) { throw new ASCOM.InvalidValueException("UTC Date Set Invalid Date: " + newdate); }
 
                     string newtime = localdatetime.ToString("HH:mm:ss");
-                    resBool = CommandBool(":SL" + newtime + "#", true);
+                    //resBool = CommandBool(":SL" + newtime + "#", true);
+                    resBool = bool.Parse(Commander(":SL" + newtime + "#", true, 1));
                     //resBool = char.GetNumericValue(res[0]) == 1;
                     if (!resBool) { throw new ASCOM.InvalidValueException("UTC Date Set Invalid Time: "+ newtime); }
                 }
