@@ -262,7 +262,7 @@ namespace ASCOM.TTS160
 
                     case "fieldrotationangle":
                         tl.LogMessage("Action", "FieldRotationAngle - Retrieving FieldRotationAngle");
-                        var result = CommandString(":ra#", true);
+                        var result = Commander(":ra#", true, 2);
                         tl.LogMessage("Action", "FieldRotationAngle - Retrieved String: " + result);
                         return result;
 
@@ -1652,7 +1652,7 @@ namespace ASCOM.TTS160
                 tl.LogMessage("Park", "Parking Mount");
                 if (!AtPark)
                 {
-                    CommandBlind(":hP#", true);
+                    Commander(":hP#", true, 0);
                     AtPark = true;
                     tl.LogMessage("Park", "Mount is Parked");
                 }
@@ -2818,10 +2818,12 @@ namespace ASCOM.TTS160
                 try
                 {
                     CheckConnected("SetTracking");
-                    tl.LogMessage("Tracking Set", "Set Track Enabled to: " + value.ToString());
-                    if (value) { CommandBlind("T1#", true); }
-                    else if (!value) { CommandBlind("T0#", true); }
+                    tl.LogMessage("Tracking Set", "Set Tracking Enabled to: " + value.ToString());
+                    if (value) { Commander("T1#", true, 0); }
+                    else if (!value) { Commander("T0#", true, 0); }
                     else { throw new ASCOM.InvalidValueException("Expected True or False, received: " + value.ToString()); }
+                    bool verify = Tracking;
+                    tl.LogMessage("Tracking Set", "Tracking verification is: " + verify.ToString());
                 }
                 catch (Exception ex)
                 {
@@ -2866,15 +2868,15 @@ namespace ASCOM.TTS160
                     switch (value)
                     {
                         case DriveRates.driveSidereal:
-                            CommandBlind(":TQ#", true);
+                            Commander(":TQ#", true, 0);
                             break;
 
                         case DriveRates.driveLunar:
-                            CommandBlind(":TL#", true);
+                            Commander(":TL#", true, 0);
                             break;
 
                         case DriveRates.driveSolar:
-                            CommandBlind(":TS#", true);
+                            Commander(":TS#", true, 0);
                             break;
 
                         default:
