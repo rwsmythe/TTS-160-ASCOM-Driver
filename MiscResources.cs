@@ -116,5 +116,13 @@ namespace ASCOM.TTS160
             get => _IsParked;
             internal set => _IsParked = value;
         }
+
+        private static bool _SlewAltAzTrackOverride = false;
+        public static bool SlewAltAzTrackOverride
+        {
+            get => _SlewAltAzTrackOverride;
+            internal set => _SlewAltAzTrackOverride = value;
+
+        }
     }
 }
