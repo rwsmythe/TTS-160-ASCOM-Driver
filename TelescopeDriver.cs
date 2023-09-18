@@ -129,7 +129,7 @@ namespace ASCOM.TTS160
         internal static string TrackingRateOnConnectName = "Tracking Rate on Connect";
         internal static string TrackingRateOnConnectDefault = "0";
 
-        internal static int MOVEAXIS_WAIT_TIME = 100; //time to wait if primary/secondary motion is true
+        internal static int MOVEAXIS_WAIT_TIME = 2000; //minimum delay between moveaxis commands
 
         /// <summary>
         /// Private variable to hold the connected state
@@ -1502,12 +1502,23 @@ namespace ASCOM.TTS160
         {
             try
             {
+
+                TimeSpan ts = DateTime.Now.Subtract(MiscResources.LastMoveAxis);
+                if ((ts.TotalSeconds*1000 < Convert.ToDouble(MOVEAXIS_WAIT_TIME)) && (Math.Abs(Rate) > 0))
+                {
+                    tl.LogMessage("MoveAxis", "Maximum MoveAxis command rate exceeded: " + ts.TotalSeconds.ToString() + "; Max Rate: " + MOVEAXIS_WAIT_TIME.ToString() + " ms");
+                    Thread.Sleep(MOVEAXIS_WAIT_TIME - Convert.ToInt32(ts.TotalSeconds)*1000);
+                }
+
+                MiscResources.LastMoveAxis = DateTime.Now;
                 tl.LogMessage("MoveAxis", $"Axis={Axis} rate={Rate}");
                 CheckConnected("MoveAxis");
                 CheckParked("MoveAxis");
 
                 var absRate = Math.Abs(Rate);
                 tl.LogMessage("MoveAxis", "Setting rate to " + absRate.ToString() + " deg/sec");
+
+                //int MOVEAXIS_DELAY = 100;
 
                 switch (absRate)
                 {
@@ -1519,6 +1530,7 @@ namespace ASCOM.TTS160
                     case (0.000277777777777778):
                         //CommandBlind(":RG#", true);
                         Commander(":RG#", true, 0);
+
                         break;
 
                     case (1.4):
@@ -1534,6 +1546,7 @@ namespace ASCOM.TTS160
                     case (3):
                         //CommandBlind(":RS#", true);
                         Commander(":RS#", true, 0);
+                        //Thread.Sleep(MOVEAXIS_DELAY);
                         break;
 
                     default:
@@ -1567,13 +1580,19 @@ namespace ASCOM.TTS160
                                 //Per ASCOM standard, SHOULD be incorporating SlewSettleTime
                                 tl.LogMessage("MoveAxis", "Primary Axis Stop Movement - Slewing False");
                                 Slewing = false;
+                                //while (!Tracking)
+                                //{
+                                //    tl.LogMessage("MoveAxis", "Waiting for Tracking to pick back up...");
+                                //    Thread.Sleep(50);
+                                //}
+                                //Thread.Sleep(MOVEAXIS_DELAY);
                                 break;
                             case ComparisonResult.Greater:
                                 tl.LogMessage("MoveAxis", "Move East");
                                 if (MiscResources.MovingPrimary)
                                 {
                                     tl.LogMessage("MoveAxis", "Still moving primary axis, waiting " + MOVEAXIS_WAIT_TIME.ToString() + " ms and retrying...");
-                                    Thread.Sleep(MOVEAXIS_WAIT_TIME);
+                                    //Thread.Sleep(MOVEAXIS_WAIT_TIME);
                                     if (MiscResources.MovingPrimary)
                                     {
                                         tl.LogMessage("MoveAxis", "Retry failed after wait period.");
@@ -1592,7 +1611,7 @@ namespace ASCOM.TTS160
                                 if (MiscResources.MovingPrimary)
                                 {
                                     tl.LogMessage("MoveAxis", "Still moving primary axis, waiting " + MOVEAXIS_WAIT_TIME.ToString() + " ms and retrying...");
-                                    Thread.Sleep(MOVEAXIS_WAIT_TIME);
+                                    //Thread.Sleep(MOVEAXIS_WAIT_TIME);
                                     if (MiscResources.MovingPrimary)
                                     {
                                         tl.LogMessage("MoveAxis", "Retry failed after wait period.");
@@ -1618,19 +1637,19 @@ namespace ASCOM.TTS160
                                     //Returns: Nothing
                                 Commander(":Qs#", true, 0);
                                     //:Qs# Halt southward Slews
-                                    //Returns: Nothing
-
+                                    //Returns: Nothing                              
                                 MiscResources.MovingSecondary = false;
                                 //Per ASCOM standard, SHOULD be incorporating SlewSettleTime
                                 tl.LogMessage("MoveAxis", "Secondary Axis Stop Movement - Slewing False");
                                 Slewing = false;
+                                //Thread.Sleep(MOVEAXIS_DELAY);
                                 break;
                             case ComparisonResult.Greater:
                                 tl.LogMessage("MoveAxis", "Move North");
                                 if (MiscResources.MovingSecondary)
                                 {
                                     tl.LogMessage("MoveAxis", "Still moving secondary axis, waiting " + MOVEAXIS_WAIT_TIME.ToString() + " ms and retrying...");
-                                    Thread.Sleep(MOVEAXIS_WAIT_TIME);
+                                    //Thread.Sleep(MOVEAXIS_WAIT_TIME);
                                     if (MiscResources.MovingSecondary)
                                     {
                                         tl.LogMessage("MoveAxis", "Retry failed after wait period.");
@@ -1648,7 +1667,7 @@ namespace ASCOM.TTS160
                                 if (MiscResources.MovingSecondary)
                                 {
                                     tl.LogMessage("MoveAxis", "Still moving secondary axis, waiting " + MOVEAXIS_WAIT_TIME.ToString() + " ms and retrying...");
-                                    Thread.Sleep(MOVEAXIS_WAIT_TIME);
+                                    //Thread.Sleep(MOVEAXIS_WAIT_TIME);
                                     if (MiscResources.MovingSecondary)
                                     {
                                         tl.LogMessage("MoveAxis", "Retry failed after wait period.");
@@ -2103,8 +2122,6 @@ namespace ASCOM.TTS160
                 T.SiteTemperature = 20;
                 T.Refraction = false;
                 T.SetAzimuthElevation(Azimuth, Altitude);
-                double utc = astroUtilities.JulianDateUtc;
-                T.JulianDateUTC = utc;
 
                 double curtargDec = 0;
                 double curtargRA = 0;
@@ -2127,6 +2144,8 @@ namespace ASCOM.TTS160
 
                 MiscResources.SlewAltAzTrackOverride = true;
                 tl.LogMessage("SlewToAltAz", "Calling SlewToCoordinates, track override enabled");
+                tl.LogMessage("SlewToAltAz", "Az: " + Azimuth.ToString() + "; Alt: " + Altitude.ToString());
+                tl.LogMessage("SlewToAltAz", "Derived Ra: " + utilities.HoursToHMS(T.RATopocentric, ":", ":") + "; Derived Dec: " + utilities.DegreesToDMS(T.DECTopocentric, ":", ":"));
                 SlewToCoordinates(T.RATopocentric, T.DECTopocentric);
                 MiscResources.SlewAltAzTrackOverride = false;
                 tl.LogMessage("SlewToAltAz", "Track override disabled");
@@ -2163,17 +2182,12 @@ namespace ASCOM.TTS160
 
                 tl.LogMessage("SlewToAltAzAsync", "Az: " + Azimuth.ToString() + "; Alt: " + Altitude.ToString());
 
-                //T.SiteLatitude = SiteLatitude;
-                //T.SiteLongitude = SiteLongitude;
-                //T.Refraction = false;
                 T.SiteLatitude = SiteLatitude;
                 T.SiteLongitude = SiteLongitude;
                 T.SiteElevation = SiteElevation;
                 T.SiteTemperature = 20;
                 T.Refraction = false;
                 T.SetAzimuthElevation(Azimuth, Altitude);
-                double utc = astroUtilities.JulianDateUtc;
-                T.JulianDateUTC = utc;
 
                 double curtargDec = 0;
                 double curtargRA = 0;
@@ -2196,6 +2210,8 @@ namespace ASCOM.TTS160
 
                 MiscResources.SlewAltAzTrackOverride = true;
                 tl.LogMessage("SlewToAltAzAsync", "Calling SlewToCoordinatesAsync, track override enabled");
+                tl.LogMessage("SlewToAltAzAsync", "Az: " + Azimuth.ToString() + "; Alt: " + Altitude.ToString());
+                tl.LogMessage("SlewToAltAzAsync", "Derived Ra: " + utilities.HoursToHMS(T.RATopocentric, ":", ":") + "; Derived Dec: " + utilities.DegreesToDMS(T.DECTopocentric, ":", ":"));
                 SlewToCoordinatesAsync(T.RATopocentric, T.DECTopocentric);
                 MiscResources.SlewAltAzTrackOverride = false;
                 tl.LogMessage("SlewToAltAzAsync", "Track override disabled");
@@ -2242,6 +2258,7 @@ namespace ASCOM.TTS160
                 {
                     throw new ASCOM.InvalidValueException($"Invalid Right Ascension: {RightAscension}");
                 }
+                
                 SlewToTarget();
             }
             catch (Exception ex)
@@ -2567,7 +2584,7 @@ namespace ASCOM.TTS160
         /// <summary>
         /// Matches the scope's local horizontal coordinates to the given local horizontal coordinates.
         /// </summary>
-        public void SyncToAltAz(double Azimuth, double Altitude)
+        public void SyncToAltAz(double TAzimuth, double TAltitude)
         {
             try
             {
@@ -2576,26 +2593,23 @@ namespace ASCOM.TTS160
 
                 if (Tracking) { throw new ASCOM.InvalidOperationException("Cannot SyncToAltAz while Tracking"); }
 
-                if ((Azimuth < 0) || (Azimuth > 360)) { throw new ASCOM.InvalidValueException($"Invalid Azimuth ${Azimuth}"); }
-                if ((Altitude < 0) || (Altitude > 90)) { throw new ASCOM.InvalidValueException($"Invalid Altitude ${Altitude}"); }
+                if ((TAzimuth < 0) || (TAzimuth > 360)) { throw new ASCOM.InvalidValueException($"Invalid Azimuth ${TAzimuth}"); }
+                if ((TAltitude < 0) || (TAltitude > 90)) { throw new ASCOM.InvalidValueException($"Invalid Altitude ${TAltitude}"); }
 
-                //T.SiteLatitude = SiteLatitude;
-                //T.SiteLongitude = (-1) * SiteLongitude;
-                //T.SiteElevation = 0;
-                //T.SiteTemperature = 20;
-                //T.Refraction = false;
                 T.SiteLatitude = SiteLatitude;
                 T.SiteLongitude = SiteLongitude;
                 T.SiteElevation = SiteElevation;
                 T.SiteTemperature = 20;
                 T.Refraction = false;
-                T.SetAzimuthElevation(Azimuth, Altitude);
-                double utc = astroUtilities.JulianDateUtc;
-                T.JulianDateUTC = utc;
-
+                T.SetAzimuthElevation(TAzimuth, TAltitude);
+             
+                tl.LogMessage("SyncToAltAz", "PreSync: Ra - " + utilities.HoursToHMS(RightAscension, ":", ":") + "; Dec - " + utilities.DegreesToDMS(Declination, ":", ":"));
                 SyncToCoordinates(T.RATopocentric, T.DECTopocentric);
                 tl.LogMessage("SyncToAltAz", "Complete");
-
+                tl.LogMessage("SyncToAltAz", "Target: Az - " + TAzimuth.ToString() + "; Alt - " + TAltitude.ToString());
+                tl.LogMessage("SyncToAltAz", "Derived Ra: " + utilities.HoursToHMS(T.RATopocentric, ":", ":") + "; Derived Dec: " + utilities.DegreesToDMS(T.DECTopocentric, ":", ":"));
+                tl.LogMessage("SyncToAltAz", "Current: Az - " + Azimuth.ToString() + "; Alt - " + Altitude.ToString());
+                tl.LogMessage("SyncToAltAz", "Current: Ra - " + utilities.HoursToHMS(RightAscension, ":", ":") + "; Dec - " + utilities.DegreesToDMS(Declination, ":", ":"));
             }
             catch (Exception ex)
             {
@@ -2607,7 +2621,7 @@ namespace ASCOM.TTS160
         /// <summary>
         /// Matches the scope's equatorial coordinates to the given equatorial coordinates.
         /// </summary>
-        public void SyncToCoordinates(double RightAscension, double Declination)
+        public void SyncToCoordinates(double TRightAscension, double TDeclination)
         {
             tl.LogMessage("SyncToCoordinates", "Setting Coordinates as Target and Syncing");
             try
@@ -2617,24 +2631,32 @@ namespace ASCOM.TTS160
 
                 //TODO Tracking control is not implemented in TTS-160, no point in checking it <---TODO: It now is, FIX THIS?!
 
-                if ((Declination >= -90) && (Declination <= 90))
+                if ((TDeclination >= -90) && (TDeclination <= 90))
                 {
-                    TargetDeclination = Declination;
+                    TargetDeclination = TDeclination;
                 }
                 else
                 {
-                    throw new ASCOM.InvalidValueException($"Invalid Declination: {Declination}");
+                    throw new ASCOM.InvalidValueException($"Invalid Declination: {TDeclination}");
                 }
-                if ((RightAscension >= 0) && (RightAscension <= 24))
+                if ((TRightAscension >= 0) && (TRightAscension <= 24))
                 {
-                    TargetRightAscension = RightAscension;
+                    TargetRightAscension = TRightAscension;
                 }
                 else
                 {
                     throw new ASCOM.InvalidValueException($"Invalid Right Ascension: {RightAscension}");
                 }
+
+                tl.LogMessage("SyncToCoordinates", "PreSync: Ra - " + utilities.HoursToHMS(RightAscension, ":", ":") + "; Dec - " + utilities.DegreesToDMS(Declination, ":", ":"));
                 var ret = Commander(":CM#", true, 2);
+                double dectoss1 = Declination;
+                Thread.Sleep(200);
+                double dectoss2 = Declination;
+                tl.LogMessage("SyncToCoordinates", "DecCheck = " + (dectoss1 - dectoss2).ToString());
                 tl.LogMessage("SyncToCoordinates", "Complete: " + ret);
+                tl.LogMessage("SyncToCoordinates", "Target: Ra - " + utilities.HoursToHMS(TRightAscension,":",":") + "; Dec - " + utilities.DegreesToDMS(TDeclination,":",":"));
+                tl.LogMessage("SyncToCoordinates", "Current: Ra - " + utilities.HoursToHMS(RightAscension,":",":") + "; Dec - " + utilities.DegreesToDMS(Declination,":",":"));
 
             }
             catch (Exception ex)
@@ -2658,10 +2680,17 @@ namespace ASCOM.TTS160
 
                 //TODO Tracking control is not implemented in TTS-160, no point in checking it.....IT NOW IS, TODO FIX IT!
 
-                                                        //For some reason TTS-160 returns a message and not catching it causes
+                tl.LogMessage("SyncToTarget", "PreSync: Ra - " + utilities.HoursToHMS(RightAscension, ":", ":") + "; Dec - " + utilities.DegreesToDMS(Declination, ":", ":"));
+                //For some reason TTS-160 returns a message and not catching it causes
                 var ret = Commander(":CM#", true, 2);  //further commands to act funny (results are 1 order off despite the
-                                                         //buffer clears)
+                                                       //buffer clears)
+                double dectoss1 = Declination;
+                Thread.Sleep(200);
+                double dectoss2 = Declination;
+                tl.LogMessage("SyncToTarget", "DecCheck = " + (dectoss1 - dectoss2).ToString());
                 tl.LogMessage("SyncToTarget", "Complete: " + ret);
+                tl.LogMessage("SyncToTarget", "Assumed Target: Ra - " + utilities.HoursToHMS(TargetRightAscension, ":", ":") + "; Dec - " + utilities.DegreesToDMS(TargetDeclination, ":", ":"));
+                tl.LogMessage("SyncToTarget", "Current: Ra - " + utilities.HoursToHMS(RightAscension, ":", ":") + "; Dec - " + utilities.DegreesToDMS(Declination, ":", ":"));
             }
             catch (Exception ex)
             {
@@ -2743,7 +2772,7 @@ namespace ASCOM.TTS160
                 }
                 catch (Exception ex)
                 {
-                    tl.LogMessage("Target Declination Set", $"Error: {ex.Message}");
+                    tl.LogMessage("TargetDeclination Set", $"Error: {ex.Message}");
                     throw;
                 }
 

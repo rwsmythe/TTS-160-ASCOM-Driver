@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Xml.Schema;
 using ASCOM.DeviceInterface;
 
 namespace ASCOM.TTS160
@@ -100,6 +101,13 @@ namespace ASCOM.TTS160
         {
             get => _SlewSettleStart;
             internal set => _SlewSettleStart = value;
+        }
+
+        private static DateTime _LastMoveAxis = DateTime.MinValue;
+        public static DateTime LastMoveAxis
+        {
+            get => _LastMoveAxis;
+            internal set => _LastMoveAxis = value;
         }
 
         private static DriveRates _TrackingRateCurrent = DriveRates.driveSidereal;
