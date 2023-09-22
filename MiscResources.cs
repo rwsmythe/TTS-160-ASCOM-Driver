@@ -103,13 +103,6 @@ namespace ASCOM.TTS160
             internal set => _SlewSettleStart = value;
         }
 
-        private static DateTime _LastMoveAxis = DateTime.MinValue;
-        public static DateTime LastMoveAxis
-        {
-            get => _LastMoveAxis;
-            internal set => _LastMoveAxis = value;
-        }
-
         private static DriveRates _TrackingRateCurrent = DriveRates.driveSidereal;
         public static DriveRates TrackingRateCurrent
         {
@@ -131,6 +124,12 @@ namespace ASCOM.TTS160
             get => _SlewAltAzTrackOverride;
             internal set => _SlewAltAzTrackOverride = value;
 
+        }
+        private static bool _TrackSetFollower = true; //try to follow the track setting
+        public static bool TrackSetFollower
+        {
+            get => _TrackSetFollower;
+            internal set => _TrackSetFollower = value;
         }
     }
 }

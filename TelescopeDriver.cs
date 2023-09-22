@@ -95,7 +95,7 @@ namespace ASCOM.TTS160
         /// This driver is intended to specifically support TTS-160 Panther mount, based on the LX200 protocol.
         /// Driver description that displays in the ASCOM Chooser.
         /// </summary>
-        private static string driverVersion = "353.0.0b3";
+        private static string driverVersion = "353.0.0b4";
         private static string driverDescription = "TTS-160 v." + driverVersion;
         private Serial serialPort;
 
@@ -643,7 +643,6 @@ namespace ASCOM.TTS160
 
                 tl.LogMessage("AbortSlew", "Aborting Slew, CommandBlind :Q#");
                 CheckConnected("AbortSlew");
-                //CommandBlind(":Q#", true);
                 Commander(":Q#", true, 0);
                 Slewing = false;
                 MiscResources.IsSlewingAsync = false;
@@ -653,6 +652,7 @@ namespace ASCOM.TTS160
                 MiscResources.IsPulseGuiding = false;
                 MiscResources.MovingPrimary = false;
                 MiscResources.MovingSecondary = false;
+                Tracking = MiscResources.TrackSetFollower;
 
                 tl.LogMessage("AbortSlew", "Completed");
             }
@@ -1503,22 +1503,12 @@ namespace ASCOM.TTS160
             try
             {
 
-                TimeSpan ts = DateTime.Now.Subtract(MiscResources.LastMoveAxis);
-                if ((ts.TotalSeconds*1000 < Convert.ToDouble(MOVEAXIS_WAIT_TIME)) && (Math.Abs(Rate) > 0))
-                {
-                    tl.LogMessage("MoveAxis", "Maximum MoveAxis command rate exceeded: " + ts.TotalSeconds.ToString() + "; Max Rate: " + MOVEAXIS_WAIT_TIME.ToString() + " ms");
-                    Thread.Sleep(MOVEAXIS_WAIT_TIME - Convert.ToInt32(ts.TotalSeconds)*1000);
-                }
-
-                MiscResources.LastMoveAxis = DateTime.Now;
                 tl.LogMessage("MoveAxis", $"Axis={Axis} rate={Rate}");
                 CheckConnected("MoveAxis");
                 CheckParked("MoveAxis");
 
                 var absRate = Math.Abs(Rate);
                 tl.LogMessage("MoveAxis", "Setting rate to " + absRate.ToString() + " deg/sec");
-
-                //int MOVEAXIS_DELAY = 100;
 
                 switch (absRate)
                 {
@@ -1528,25 +1518,20 @@ namespace ASCOM.TTS160
                         break;
 
                     case (0.000277777777777778):
-                        //CommandBlind(":RG#", true);
                         Commander(":RG#", true, 0);
 
                         break;
 
                     case (1.4):
-                        //CommandBlind(":RM#", true);
                         Commander(":RM#", true, 0);
                         break;
 
                     case (2.2):
-                        //CommandBlind(":RC#", true);
                         Commander(":RC#", true, 0);
                         break;
 
                     case (3):
-                        //CommandBlind(":RS#", true);
                         Commander(":RS#", true, 0);
-                        //Thread.Sleep(MOVEAXIS_DELAY);
                         break;
 
                     default:
@@ -1567,51 +1552,55 @@ namespace ASCOM.TTS160
                                 //}
                                
                                 tl.LogMessage("MoveAxis", "Primary Axis Stop Movement");
-                                //CommandBlind(":Qe#", true);
                                 Commander(":Qe#", true, 0);
                                     //:Qe# Halt eastward Slews
                                     //Returns: Nothing
-                                //CommandBlind(":Qw#", true);
                                 Commander(":Qw#", true, 0);
-                                    //:Qw# Halt westward Slews
-                                    //Returns: Nothing
+                                //:Qw# Halt westward Slews
+                                //Returns: Nothing
+
+                                int LOOP_WAIT_TIME = 100; //ms
+                                 
+                                tl.LogMessage("MoveAxis", "Movement finished, waiting for " + MOVEAXIS_WAIT_TIME.ToString() + " ms or until tracking restarts");                                  
+                                int iter = Convert.ToInt32(Convert.ToDouble(MOVEAXIS_WAIT_TIME) / Convert.ToDouble(LOOP_WAIT_TIME));                                  
+                                int i = 0;   
+                                while (i <= iter)
+                                    {
+                                        if (Tracking) { break; }  //if tracking is restored, no need to wait!
+                                        Thread.Sleep(LOOP_WAIT_TIME);
+                                        i++;
+                                    }
 
                                 MiscResources.MovingPrimary = false;
                                 //Per ASCOM standard, SHOULD be incorporating SlewSettleTime
+
                                 tl.LogMessage("MoveAxis", "Primary Axis Stop Movement - Slewing False");
                                 Slewing = false;
-                                //while (!Tracking)
-                                //{
-                                //    tl.LogMessage("MoveAxis", "Waiting for Tracking to pick back up...");
-                                //    Thread.Sleep(50);
-                                //}
-                                //Thread.Sleep(MOVEAXIS_DELAY);
                                 break;
+
                             case ComparisonResult.Greater:
                                 tl.LogMessage("MoveAxis", "Move East");
                                 if (MiscResources.MovingPrimary)
                                 {
                                     tl.LogMessage("MoveAxis", "Still moving primary axis, waiting " + MOVEAXIS_WAIT_TIME.ToString() + " ms and retrying...");
-                                    //Thread.Sleep(MOVEAXIS_WAIT_TIME);
                                     if (MiscResources.MovingPrimary)
                                     {
                                         tl.LogMessage("MoveAxis", "Retry failed after wait period.");
                                         throw new ASCOM.DriverException("Axis already in motion");
                                     } 
                                 }
-                                //CommandBlind(":Me#", true);
                                 Commander(":Me#", true, 0);
                                 //:Me# Move Telescope East at current slew rate
                                 //Returns: Nothing
                                 MiscResources.MovingPrimary = true;
                                 Slewing = true;
                                 break;
+
                             case ComparisonResult.Lower:
                                 tl.LogMessage("MoveAxis", "Move West");
                                 if (MiscResources.MovingPrimary)
                                 {
                                     tl.LogMessage("MoveAxis", "Still moving primary axis, waiting " + MOVEAXIS_WAIT_TIME.ToString() + " ms and retrying...");
-                                    //Thread.Sleep(MOVEAXIS_WAIT_TIME);
                                     if (MiscResources.MovingPrimary)
                                     {
                                         tl.LogMessage("MoveAxis", "Retry failed after wait period.");
@@ -1642,14 +1631,12 @@ namespace ASCOM.TTS160
                                 //Per ASCOM standard, SHOULD be incorporating SlewSettleTime
                                 tl.LogMessage("MoveAxis", "Secondary Axis Stop Movement - Slewing False");
                                 Slewing = false;
-                                //Thread.Sleep(MOVEAXIS_DELAY);
                                 break;
                             case ComparisonResult.Greater:
                                 tl.LogMessage("MoveAxis", "Move North");
                                 if (MiscResources.MovingSecondary)
                                 {
                                     tl.LogMessage("MoveAxis", "Still moving secondary axis, waiting " + MOVEAXIS_WAIT_TIME.ToString() + " ms and retrying...");
-                                    //Thread.Sleep(MOVEAXIS_WAIT_TIME);
                                     if (MiscResources.MovingSecondary)
                                     {
                                         tl.LogMessage("MoveAxis", "Retry failed after wait period.");
@@ -1667,7 +1654,6 @@ namespace ASCOM.TTS160
                                 if (MiscResources.MovingSecondary)
                                 {
                                     tl.LogMessage("MoveAxis", "Still moving secondary axis, waiting " + MOVEAXIS_WAIT_TIME.ToString() + " ms and retrying...");
-                                    //Thread.Sleep(MOVEAXIS_WAIT_TIME);
                                     if (MiscResources.MovingSecondary)
                                     {
                                         tl.LogMessage("MoveAxis", "Retry failed after wait period.");
@@ -1693,7 +1679,6 @@ namespace ASCOM.TTS160
                 throw;
             }
         }
-
 
         /// <summary>
         /// Move the telescope to its park position, stop all motion (or restrict to a small safe range), and set <see cref="AtPark" /> to True.
@@ -2877,13 +2862,13 @@ namespace ASCOM.TTS160
                 try
                 {
                     CheckConnected("SetTracking");
+                    CheckSlewing("SetTracking");
+
                     tl.LogMessage("Tracking Set", "Set Tracking Enabled to: " + value.ToString());
                     if (value) { Commander(":T1#", true, 0); }
                     else if (!value) { Commander(":T0#", true, 0); }
                     else { throw new ASCOM.InvalidValueException("Expected True or False, received: " + value.ToString()); }
-                    //Thread.Sleep(100); //give mount a brief moment to comply...
-                    //bool verify = Tracking;
-                    //tl.LogMessage("Tracking Set", "Tracking verification is: " + verify.ToString());
+                    MiscResources.TrackSetFollower = value;
                 }
                 catch (Exception ex)
                 {
@@ -3167,6 +3152,18 @@ namespace ASCOM.TTS160
             if (!IsConnected)
             {
                 throw new ASCOM.NotConnectedException(message);
+            }
+        }
+
+        /// <summary>
+        /// Use this function to throw an exception if we are slewing
+        /// </summary>
+        /// <param name="message"></param>
+        private void CheckSlewing(string message)
+        {
+            if (Slewing)
+            {
+                throw new ASCOM.InvalidOperationException("Unable to " + message + " while slewing");
             }
         }
 
